@@ -1,5 +1,9 @@
 #include "src/include/pfm.h"
+#include <iostream>
+#include <sys/stat.h>
 #include <map>
+#include <vector>
+#include <algorithm>
 
 namespace PeterDB {
     std::map<std::string, FILE*> filesMap;
@@ -18,15 +22,26 @@ namespace PeterDB {
     PagedFileManager &PagedFileManager::operator=(const PagedFileManager &) = default;
 
     RC PagedFileManager::createFile(const std::string &fileName) {
+        struct stat stFileInfo{};
+
+        bool exist = stat(fileName.c_str(), &stFileInfo) == 0;
+        if(exist)
+        {
+            std::cerr << "File already created" << std::endl;
+            return -1;
+        }
+
         FILE* file;
         file = fopen(fileName.c_str(), "w");
         if(file == nullptr)
         {
+            std::cerr << "File failed to create" << std::endl;
             return -1;
         }
         fclose(file);
 
         return 0;
+
     }
 
     RC PagedFileManager::destroyFile(const std::string &fileName) {
@@ -39,7 +54,16 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
-        return -1;
+        FILE* file = fopen(fileName.c_str(), "wb");
+        if(file == nullptr)
+        {
+            return -1;
+        }
+        else
+        {
+            fileHandle.file = file;
+        }
+
     }
 
     RC PagedFileManager::closeFile(FileHandle &fileHandle) {
@@ -47,6 +71,7 @@ namespace PeterDB {
     }
 
     FileHandle::FileHandle() {
+        FILE* file = nullptr;
         readPageCounter = 0;
         writePageCounter = 0;
         appendPageCounter = 0;

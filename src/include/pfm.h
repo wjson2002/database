@@ -4,6 +4,7 @@
 #define PAGE_SIZE 4096
 
 #include <string>
+#include <vector>
 
 namespace PeterDB {
 
@@ -15,7 +16,7 @@ namespace PeterDB {
     class PagedFileManager {
     public:
         static PagedFileManager &instance();                                // Access to the singleton instance
-
+        std::vector<std::string> files;
         RC createFile(const std::string &fileName);                         // Create a new file
         RC destroyFile(const std::string &fileName);                        // Destroy a file
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a file
@@ -32,6 +33,7 @@ namespace PeterDB {
     class FileHandle {
     public:
         // variables to keep the counter for each operation
+        FILE* file;
         unsigned readPageCounter;
         unsigned writePageCounter;
         unsigned appendPageCounter;
