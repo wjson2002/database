@@ -1,8 +1,11 @@
 #include "src/include/pfm.h"
+#include <map>
 
 namespace PeterDB {
+    std::map<std::string, FILE*> filesMap;
     PagedFileManager &PagedFileManager::instance() {
         static PagedFileManager _pf_manager = PagedFileManager();
+
         return _pf_manager;
     }
 
@@ -15,11 +18,24 @@ namespace PeterDB {
     PagedFileManager &PagedFileManager::operator=(const PagedFileManager &) = default;
 
     RC PagedFileManager::createFile(const std::string &fileName) {
-        return -1;
+        FILE* file;
+        file = fopen(fileName.c_str(), "w");
+        if(file == nullptr)
+        {
+            return -1;
+        }
+        fclose(file);
+
+        return 0;
     }
 
     RC PagedFileManager::destroyFile(const std::string &fileName) {
-        return -1;
+        int result = remove(fileName.c_str());
+        if (result != 0)
+        {
+            return -1;
+        }
+        return 0;
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
