@@ -54,24 +54,38 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
+
+        if(fileHandle.file != nullptr){
+            std::cerr << "FileHandle already assigned to open file" << std::endl;
+
+            return -1;
+        }
         FILE* file = fopen(fileName.c_str(), "wb");
         if(file == nullptr)
         {
+            std::cerr << "File failed to open" << std::endl;
+            printf("File failed to openf");
             return -1;
         }
         else
         {
+            printf("File successf");
             fileHandle.file = file;
+            return 0;
         }
-
     }
 
     RC PagedFileManager::closeFile(FileHandle &fileHandle) {
-        return -1;
+        FILE* file = fileHandle.file;
+        fclose(file);
+        fileHandle.file = nullptr;
+
+        return 0;
     }
 
     FileHandle::FileHandle() {
         FILE* file = nullptr;
+
         readPageCounter = 0;
         writePageCounter = 0;
         appendPageCounter = 0;
@@ -80,6 +94,7 @@ namespace PeterDB {
     FileHandle::~FileHandle() = default;
 
     RC FileHandle::readPage(PageNum pageNum, void *data) {
+        readPageCounter += 1;
         return -1;
     }
 

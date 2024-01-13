@@ -34,6 +34,7 @@ namespace PeterDB {
     public:
         // variables to keep the counter for each operation
         FILE* file;
+        std::string filename;
         unsigned readPageCounter;
         unsigned writePageCounter;
         unsigned appendPageCounter;
