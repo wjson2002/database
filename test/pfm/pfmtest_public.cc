@@ -360,4 +360,22 @@ namespace PeterDBTesting {
         }
     }
 
+    TEST_F (PFM_Page_Test, check_page_count_updates) {
+        // My Own Test case procedure:
+        // 1. Read the 39 Pages from the previous test case
+        // 2. Check Page Number after each read
+        size_t currentFileSize = getFileSize(fileName);
+        inBuffer = malloc(PAGE_SIZE);
+        int numPages = 1;
+        for (int i = 1; i <= 3; i++) {
+            printf("running test(%d) %d\n",i , fileno(fileHandle.f));
+            ASSERT_EQ(fileHandle.appendPage(inBuffer), success) << "Appending a page should succeed.";
+            ASSERT_EQ(fileHandle.getNumberOfPages(), i)
+                                        << "The page count should be " << i << " at this moment";
+            printf("%d done running\n", i);
+
+        }
+        destroyFile = false;
+    }
+
 } // namespace PeterDBTesting

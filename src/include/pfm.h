@@ -33,8 +33,8 @@ namespace PeterDB {
     class FileHandle {
     public:
         // variables to keep the counter for each operation
-        FILE* file;
-        std::string filename;
+        FILE* f = nullptr;
+
         unsigned readPageCounter;
         unsigned writePageCounter;
         unsigned appendPageCounter;
@@ -47,7 +47,11 @@ namespace PeterDB {
         RC appendPage(const void *data);                                    // Append a specific page
         unsigned getNumberOfPages();                                        // Get the number of pages in the file
         RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount,
-                                unsigned &appendPageCount);                 // Put current counter values into variables
+                                unsigned &appendPageCount);                 // Put current counter values
+
+
+        void initFile(FILE* file);
+
     };
 
 } // namespace PeterDB
