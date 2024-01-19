@@ -31,14 +31,14 @@ namespace PeterDB {
         }
         FILE* file;
         file = fopen(fileName.c_str(), "wr+");
-        initFile(file);
+        pfmInitFile(file);
         if(file == nullptr)
         {
             std::cerr << "File failed to create" << std::endl;
             return -1;
         }
         else{
-            printf("file %s created...\n now closing\n", fileName.c_str());
+            printf("file created... now closing\n");
             fclose(file);
         }
         return 0;
@@ -82,8 +82,7 @@ namespace PeterDB {
         return 0;
     }
 
-    void PagedFileManager::initFile(FILE* file) {
-        printf("initing file\n");
+    void PagedFileManager::pfmInitFile(FILE* file) {
         fseek(file,0,SEEK_SET);
         int defaultPageData[4] = {0, 0,0,0};
         size_t write = fwrite(defaultPageData, PAGE_SIZE, 1, file);
@@ -114,7 +113,6 @@ namespace PeterDB {
 
         readPageCounter++;
         unsigned offset = (pageNum + 1) * PAGE_SIZE;
-        printf("Offset: {%d}\n", offset);
         fseek(myFile,offset,SEEK_SET);
         size_t read = fread(data, 1, PAGE_SIZE, myFile);
 
@@ -123,7 +121,6 @@ namespace PeterDB {
             return -1;
         }
         else{
-            printf("Read Bytes: %zu\n", read);
             return 0;
         }
 
@@ -138,7 +135,7 @@ namespace PeterDB {
 
         writePageCounter++;
         unsigned offset = (pageNum + 1) * PAGE_SIZE;
-        printf("Offset: {%d}\n", offset);
+
         fseek(myFile,offset,SEEK_SET);
         size_t write = fwrite(data, 1, PAGE_SIZE, myFile);
 
@@ -147,7 +144,6 @@ namespace PeterDB {
             return -1;
         }
         else{
-            printf("Write Bytes: %zu\n", write);
             return 0;
         }
         return 0;
@@ -155,7 +151,6 @@ namespace PeterDB {
 
     RC FileHandle::appendPage(const void *data) {
         //write to end
-        printf("Start appending Page\n");
         numOfPages++;
         appendPageCounter++;
         fseek(myFile,0,SEEK_END);
@@ -166,7 +161,6 @@ namespace PeterDB {
             return -1;
         }
         else{
-            printf("Append bytes written: %zu", write);
             return 0;
         }
     }
@@ -206,7 +200,6 @@ namespace PeterDB {
         printf("Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
-        printf("Flushing values: page{%d}, read{%d}, write{%d}\n", numOfPages,readPageCounter, writePageCounter);
         fseek(myFile,0,SEEK_SET);
 
         fwrite(&numOfPages,sizeof(unsigned), 1, myFile);
@@ -221,20 +214,14 @@ namespace PeterDB {
 
         fflush(myFile);
 
-        printf("Flushing values FINISHED\n");
-
-        printf("testing flush values\n");
-        unsigned test = -1;
-        fseek(myFile,0,SEEK_SET);
-        fread(&test ,sizeof(unsigned), 1, myFile);
-        printf("Read flushed values: page{%d}, read{%d}, write{%d}\n", test,readPageCounter, writePageCounter);
+        printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
     }
 
     void FileHandle::initPage() {
         if(myFile != nullptr){
             fseek(myFile,0,SEEK_END);
             printf("calling init: file size: %ld\n", ftell(myFile));
-            printf("reseting values to 0\n");
+
 
             fseek(myFile,0,SEEK_SET);
             int defaultPageData[4] = {0, 0,0,0};
