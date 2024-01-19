@@ -10,6 +10,28 @@ namespace PeterDBTesting {
         ASSERT_TRUE(fileExists(fileName)) << "The file is not found: " << fileName;
     }
 
+    TEST_F (PFM_File_Test, create_file_init_hidden_page) {
+
+        ASSERT_FALSE (fileExists(fileName)) << "The file should not exist now: " << fileName;
+        pfm.createFile(fileName);
+        FILE* testFile = fopen(fileName.c_str(), "rb+");
+        int data = -1;
+
+        fseek(testFile, 0, SEEK_SET);
+        size_t read = fread(&data, sizeof(data), 1, testFile);
+        if(read <=0){
+            perror("read page num test failed");
+        }
+        printf("read int: %d\n", data);
+        ASSERT_EQ(0, data) << "The file page count should init to 0: " << fileName;
+        read = fread(&data, sizeof(data), 1, testFile);
+        ASSERT_EQ(0, data) << "The file read count should init to 0: " << fileName;
+        read = fread(&data, sizeof(data), 1, testFile);
+        ASSERT_EQ(0, data) << "The file write count should init to 0: " << fileName;
+
+
+    }
+
     TEST_F (PFM_File_Test, create_existing_file) {
 
         ASSERT_EQ(pfm.createFile(fileName), success) << "Creating file should succeed: " << fileName;;
@@ -249,6 +271,7 @@ namespace PeterDBTesting {
         // Append 100 pages
         inBuffer = malloc(PAGE_SIZE);
         size_t fileSizeBeforeAppend = getFileSize(fileName);
+        printf("Creating 100 files\n");
         for (unsigned j = 0; j < 100; j++) {
             generateData(inBuffer, PAGE_SIZE, j + 1);
             ASSERT_EQ(fileHandle.appendPage(inBuffer), success) << "Appending a page should succeed.";
@@ -368,7 +391,8 @@ namespace PeterDBTesting {
         inBuffer = malloc(PAGE_SIZE);
         int numPages = 1;
         for (int i = 1; i <= 3; i++) {
-            printf("running test(%d) %d\n",i , fileno(fileHandle.f));
+            printf("%d\n",fileHandle.appendPageCounter);
+            printf("running test(%d) %d\n",i , fileno(fileHandle.myFile));
             ASSERT_EQ(fileHandle.appendPage(inBuffer), success) << "Appending a page should succeed.";
             ASSERT_EQ(fileHandle.getNumberOfPages(), i)
                                         << "The page count should be " << i << " at this moment";
