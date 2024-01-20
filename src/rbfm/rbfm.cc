@@ -1,5 +1,5 @@
 #include "src/include/rbfm.h"
-
+#include <iostream>
 namespace PeterDB {
     RecordBasedFileManager &RecordBasedFileManager::instance() {
         static RecordBasedFileManager _rbf_manager = RecordBasedFileManager();
@@ -15,6 +15,20 @@ namespace PeterDB {
     RecordBasedFileManager &RecordBasedFileManager::operator=(const RecordBasedFileManager &) = default;
 
     RC RecordBasedFileManager::createFile(const std::string &fileName) {
+        FILE* file;
+        file = fopen(fileName.c_str(), "wr+");
+
+        if(file == nullptr)
+        {
+            std::cerr << "File failed to create" << std::endl;
+            return -1;
+        }
+        else{
+            printf("file created... now closing\n");
+            fclose(file);
+        }
+        return 0;
+
         return -1;
     }
 

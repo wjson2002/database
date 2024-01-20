@@ -1,8 +1,7 @@
 #include "src/include/pfm.h"
 #include <iostream>
 #include <sys/stat.h>
-#include <map>
-#include <unistd.h>
+
 
 namespace PeterDB {
 
