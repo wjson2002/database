@@ -68,6 +68,8 @@ namespace PeterDB {
 
     class RecordBasedFileManager {
     public:
+
+
         static RecordBasedFileManager &instance();                          // Access to the singleton instance
 
         RC createFile(const std::string &fileName);                         // Create a new record-based file
@@ -77,6 +79,8 @@ namespace PeterDB {
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a record-based file
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
+
+        std::vector<int> serialize(char* bytes);
 
         //  Format of the data passed into the function is the following:
         //  [n byte-null-indicators for y fields] [actual value for the first field] [actual value for the second field] ...
@@ -109,6 +113,7 @@ namespace PeterDB {
         //        age: NULL  height: 7.5  salary: 7500)
         RC printRecord(const std::vector<Attribute> &recordDescriptor, const void *data, std::ostream &out);
 
+
         /*****************************************************************************************************
         * IMPORTANT, PLEASE READ: All methods below this comment (other than the constructor and destructor) *
         * are NOT required to be implemented for Project 1                                                   *
@@ -132,6 +137,9 @@ namespace PeterDB {
                 const void *value,                    // used in the comparison
                 const std::vector<std::string> &attributeNames, // a list of projected attributes
                 RBFM_ScanIterator &rbfm_ScanIterator);
+
+
+
 
     protected:
         RecordBasedFileManager();                                                   // Prevent construction
