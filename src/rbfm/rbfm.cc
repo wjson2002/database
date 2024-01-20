@@ -62,14 +62,16 @@ namespace PeterDB {
     std::vector<int> RecordBasedFileManager::serialize(char* bytes){
 
         int bits = sizeof(bytes);
-        printf("SERIALZING:SIZE OF %lu, %d }", sizeof(bytes), bits);
+        printf("SERIALZING:SIZE OF %lu, %d bit Array: }", sizeof(bytes), bits);
         std::vector<int> bitArray(bits);
+        int index = 0;
         for (int i = (sizeof(bytes)) - 1; i >= 0; --i) {
             int bit = ((*bytes & (1 << i)) != 0 ? 1 : 0);
-            bitArray.push_back(bit);
+            bitArray[index] = bit;
             printf("%d", bit);
+            index+=1;
         }
-        printf(" bitArray}\n");
+        printf("\n");
         return bitArray;
     }
     RC RecordBasedFileManager::printRecord(const std::vector<Attribute> &recordDescriptor, const void *data,
@@ -84,39 +86,70 @@ namespace PeterDB {
         for (int i = 0; i < numOfNullBytes; ++i) {
             nullIndicators[i] = dataPointer [i];
             dataPointer++;
-            printf("{%d}\n", nullIndicators[i]);
+            printf("Null indicator array{%d}\n", nullIndicators[i]);
         }
 
-        std::vector<int> nullArray = serialize(nullIndicators);
+        std::vector<int> bitArray = serialize(nullIndicators);
+        printf(" bitArray: ");
+        for(auto i : bitArray){
+            printf("%d", i);
+        }
 
+        int index = 0;
         for (const Attribute& attribute : recordDescriptor){
-            std::cout<<" {LOOP} ";
+            std::cout << attribute.name.c_str();
+            out << attribute.name.c_str();
+            printf("value of bit arrry:%d \n",bitArray[index]);
+            if(bitArray[index] == 1){
+                std::cout << ": NULL";
+                out << ": NULL";\
+                if(index == recordDescriptor.size() - 1){
+                    std::cout<< "\n";
+                    out<< "\n";
+                }
+                else{
+                    std::cout<< ", ";
+                    out<< ", ";
+                }
+                index ++;
+                continue;
+            }
+
             switch (attribute.type) {
                 case TypeInt:
-                    std::cout << attribute.name.c_str() << " ";
-                    std::cout<<" TypeINt ";
-                    std::cout<<*(int*)dataPointer ;
+                    std::cout << ": " << *(int*)dataPointer;
+                    out << ": " << *(int*)dataPointer;
                     dataPointer +=4;
                     break;
                 case TypeReal:
-                    std::cout << attribute.name.c_str() << " ";
-                    std::cout<<" TypeReal ";
-                    std::cout<<*(float*)dataPointer ;
+                    std::cout<< ": " << *(float*)dataPointer;
+                    out<< ": " << *(float*)dataPointer;
                     dataPointer +=4;
                     break;
                 case TypeVarChar:
-                    std::cout << attribute.name.c_str() << " ";
-                    int* length= (int*)dataPointer ;
-                    std::cout<<" VarChar:" <<  sizeof(length);
-                    dataPointer  += 4;
+                    std::cout << ": ";
+                    out << ": ";
+                    int* length= (int*)dataPointer;
+                    dataPointer += 4;
                     for(int i = 0; i < *length; i++){
-                        std::cout<<*dataPointer ;
-                        dataPointer ++;
+                        std::cout<<*dataPointer;
+                        out<<*dataPointer;
+                        dataPointer++;
                     }
                     break;
             }
+
+            if(index == recordDescriptor.size() - 1){
+                std::cout<< "\n";
+                out<< "\n";
+            }
+            else{
+                std::cout<< ", ";
+                out<< ", ";
+            }
+            index ++;
         }
-        out<<std::endl;
+
 
         return -1;
     }
