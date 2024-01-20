@@ -39,12 +39,44 @@ namespace PeterDB {
 
         return result;
     }
+    void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle){
+        short freeSpace = 4096;
+        char numOfRecords = 2;
+        FILE* myFile = fileHandle.myFile;
+        fseek(myFile,-2,SEEK_END);
+        size_t writeSlotDirectory = fwrite(&freeSpace, 1, sizeof(freeSpace), myFile);
+        fseek(myFile,-3,SEEK_END);
+        //writeSlotDirectory = fwrite(&numOfRecords, 1, sizeof(numOfRecords), myFile);
+        fseek(myFile,0,SEEK_SET);
+    }
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
         printf("Start insertRecord\n");
         printf("RD size: %zu\n", recordDescriptor.size());
 
+        PageNum pageNumber = rid.pageNum;
+
+        if(fileHandle.numOfPages == 0){
+            rid.pageNum = 0;
+            rid.slotNum = 0;
+            void* buffer[PAGE_SIZE];
+            fileHandle.appendPage(data);
+            initSlotDirectory(fileHandle);
+            fileHandle.readPage(0, buffer);
+            char* freeSpacePointer = (char*)buffer + PAGE_SIZE - sizeof(short);
+            short retrievedValue = *(short*)freeSpacePointer;
+            char* numOfRecordsPointer = (char*)buffer + PAGE_SIZE - sizeof(char) - sizeof(short);
+            char numOfRecords = *(char*)numOfRecordsPointer;
+            // Print the retrieved short value
+            printf("Retrieved short value: %d\n", retrievedValue);
+            printf("Retrieved char value: %d\n", numOfRecords);
+
+
+            fileHandle.writePage(rid.pageNum, data);
+            return 0;
+
+        }
 
         return -1;
     }
@@ -59,6 +91,7 @@ namespace PeterDB {
                                             const RID &rid) {
         return -1;
     }
+
     std::vector<int> RecordBasedFileManager::serialize(char* bytes){
 
         int bits = sizeof(bytes);

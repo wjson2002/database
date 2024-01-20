@@ -79,7 +79,7 @@ namespace PeterDB {
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a record-based file
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
-
+        void initSlotDirectory(FileHandle &fileHandle);
         std::vector<int> serialize(char* bytes);
 
         //  Format of the data passed into the function is the following:

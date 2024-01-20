@@ -593,24 +593,24 @@ namespace PeterDBTesting {
         memset(outBuffer, 0, 2000);
 
         std::vector<PeterDB::RID> rids;
-
+        printf("Reading diSK\n");
         readRIDsFromDisk(rids, 1);
         rid = rids[0];
-
+        printf("Crea RD file\n");
         std::vector<PeterDB::Attribute> recordDescriptor;
         createRecordDescriptorForTweetMessage(recordDescriptor);
-
+        printf("init null file\n");
         // NULL field indicator
         nullsIndicator = initializeNullFieldsIndicator(recordDescriptor);
-
+        printf("after innit null file\n");
         // set all fields as NULL
         nullsIndicator[0] = 248; // 11111000
-
+        printf("Reading file\n");
         // Insert a record into a file
         prepareRecordForTweetMessage((int) recordDescriptor.size(), nullsIndicator, 1234, 9, "wildfires", 43,
                                      "Curious ... did the amazon wildfires stop?", 999, 3, "wow", inBuffer,
                                      recordSize);
-
+        printf("Reading file\n");
         // Given the rid, read the record from file
         ASSERT_EQ(rbfm.readRecord(fileHandle, recordDescriptor, rid, outBuffer), success)
                                     << "Reading a record should succeed.";
