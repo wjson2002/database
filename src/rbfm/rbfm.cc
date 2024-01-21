@@ -58,7 +58,6 @@ namespace PeterDB {
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
         printf("Start insertRecord\n");
-        printf("RD size: %zu\n", recordDescriptor.size());
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
         int totalNumOfPages = fileHandle.numOfPages;
@@ -143,37 +142,65 @@ namespace PeterDB {
                                                           char* slotPointer, int length, char (&buffer)[PAGE_SIZE]) {
 
         char numOfRecords = getSlotElementSize(slotPointer);
+        short freeSize = getSlotSize(slotPointer);
         unsigned numOfPages = fileHandle.numOfPages;
         char updatedNumOfRecords = (char)((int)numOfRecords + 1);
+        if(numOfRecords == 0){
+            buffer[PAGE_SIZE - 3] = updatedNumOfRecords;
+            short newSize = freeSize - (short)length;
+            memcpy(buffer + PAGE_SIZE - 2, &newSize, sizeof(short));
+        }
+        else{
+            buffer[PAGE_SIZE - 3] = updatedNumOfRecords;
+            int totalLength = 0;
+            ushort slotNum = 0;
+            for(int i = 0;i < numOfRecords; i++) {
+                int l;
+                memcpy(&l, buffer+PAGE_SIZE - 3 - sizeof(int) * (i + 1), sizeof(int));
+                printf("FOUND LENGTH: %d ", l);
+                totalLength += l;
+            }
 
+            //update offset
+            memcpy(buffer + PAGE_SIZE - 3 - slotNum * sizeof(int) + sizeof(int), &totalLength, sizeof(int));
+
+            // Update the length in the buffer
+            memcpy(buffer + PAGE_SIZE - 3 - slotNum * sizeof(int), &length, sizeof(int));
+
+            printf("done updating slot directory\n");
+        }
         printf("Num of pages: %d UPDATED char value to: %d\n", numOfPages, updatedNumOfRecords);
 
-        int offset = (numOfPages - rid.pageNum - 1) * PAGE_SIZE; //Get end of N number of pages
         buffer[PAGE_SIZE - 3] = updatedNumOfRecords;
 
         printf("done updating new num of records, wrote %lu\n", sizeof(updatedNumOfRecords));
+        for(int i = 0;i < numOfRecords; i++) {
 
+        }
         int differ = 0;
         slotPointer-=3;
         int off = 0;
+        //Pos is size of
         int position = (rid.pageNum + 1) * sizeof(int);
+        int openSlot = 0;
+        //get total length of all records in SLD
         for(int i = 0;i < numOfRecords; i++){
             int l;
             memcpy(&l, buffer+PAGE_SIZE - 3 - position, sizeof(int));
-            printf("FOUND LENGTH: %d", l);
+            printf("FOUND LENGTH: %d ", l);
             off += buffer[PAGE_SIZE - 3 - position];
         }
         char d = (char)(differ);
 
 
-        buffer[PAGE_SIZE - 2 - position] = d;
-        printf("trying to update to length of %d", length);
-        memcpy(buffer + PAGE_SIZE - 3 - position - sizeof(int), &off, sizeof(int));
-
-        // Update the length in the buffer
-        memcpy(buffer + PAGE_SIZE - 3 - position, &length, sizeof(int));
-
-        printf("done updating slot directory\n");
+//        buffer[PAGE_SIZE - 2 - position] = d;
+//        printf("trying to update to length of %d", length);
+//        memcpy(buffer + PAGE_SIZE - 3 - position - sizeof(int), &off, sizeof(int));
+//
+//        // Update the length in the buffer
+//        memcpy(buffer + PAGE_SIZE - 3 - position, &length, sizeof(int));
+//
+//        printf("done updating slot directory\n");
 
         return updatedNumOfRecords - 1;
     }
@@ -262,7 +289,6 @@ namespace PeterDB {
         for (int i = 0; i < numOfNullBytes; ++i) {
             nullIndicators[i] = dataPointer [i];
             dataPointer++;
-            printf("Null indicator array{%d}\n", nullIndicators[i]);
         }
 
         std::vector<int> bitArray = serialize(nullIndicators);
