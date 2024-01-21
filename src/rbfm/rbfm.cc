@@ -40,13 +40,13 @@ namespace PeterDB {
         return result;
     }
     void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle){
-        short freeSpace = 4096;
-        char numOfRecords = 2;
+        short freeSpace = 4093;
+        char numOfRecords = 1;
         FILE* myFile = fileHandle.myFile;
         fseek(myFile,-2,SEEK_END);
         size_t writeSlotDirectory = fwrite(&freeSpace, 1, sizeof(freeSpace), myFile);
         fseek(myFile,-3,SEEK_END);
-        //writeSlotDirectory = fwrite(&numOfRecords, 1, sizeof(numOfRecords), myFile);
+        writeSlotDirectory = fwrite(&numOfRecords, 1, sizeof(numOfRecords), myFile);
         fseek(myFile,0,SEEK_SET);
     }
 
@@ -60,30 +60,67 @@ namespace PeterDB {
         if(fileHandle.numOfPages == 0){
             rid.pageNum = 0;
             rid.slotNum = 0;
+
             void* buffer[PAGE_SIZE];
             fileHandle.appendPage(data);
             initSlotDirectory(fileHandle);
             fileHandle.readPage(0, buffer);
-            char* freeSpacePointer = (char*)buffer + PAGE_SIZE - sizeof(short);
-            short retrievedValue = *(short*)freeSpacePointer;
-            char* numOfRecordsPointer = (char*)buffer + PAGE_SIZE - sizeof(char) - sizeof(short);
-            char numOfRecords = *(char*)numOfRecordsPointer;
+
+            char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
+            short freeSpace = getSlotSize(slotDirectoryPointer);
+            char numOfRecords = getSlotElementSize(slotDirectoryPointer);
+
             // Print the retrieved short value
-            printf("Retrieved short value: %d\n", retrievedValue);
+            printf("Retrieved short value: %d\n", freeSpace);
             printf("Retrieved char value: %d\n", numOfRecords);
 
-
             fileHandle.writePage(rid.pageNum, data);
+            //Update Slot directory by writing to page
+            addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer);
+            fileHandle.readPage(0, buffer);
+            numOfRecords = getSlotElementSize(slotDirectoryPointer);
+            printf("Retrieved updated char value: %d\n", numOfRecords);
             return 0;
 
         }
-
         return -1;
+    }
+    char* RecordBasedFileManager::getSlotDirectoryPointer(void* page){
+        char* pointer = (char*)(page) + PAGE_SIZE;
+        return pointer;
+    }
+
+    short RecordBasedFileManager::getSlotSize(char* slotPointer){
+        char* freeSpacePointer = slotPointer - sizeof(short);
+        return *(short*)freeSpacePointer;
+    }
+    char RecordBasedFileManager::getSlotElementSize(char* slotPointer){
+        char* numOfRecordsPointer = slotPointer - sizeof(short)  - sizeof(char);
+        return *numOfRecordsPointer;
+    }
+
+    void RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer) {
+        short slotSize = getSlotSize(slotPointer);
+        char numOfRecords = getSlotElementSize(slotPointer);
+        unsigned numOfPages = fileHandle.numOfPages;
+        char updatedNumOfRecords = (char)((int)numOfRecords + 1);
+        printf("NUm of pages: %d UPDATED char value to: %d\n", numOfPages, numOfRecords);
+
+        FILE* myFile = fileHandle.myFile;
+        int offset = (numOfPages - rid.pageNum - 1) * PAGE_SIZE;
+        printf("write {%d} to end with offset of {%d}\n", updatedNumOfRecords,offset);
+        fseek(myFile,-offset-3,SEEK_END);
+        fwrite(&updatedNumOfRecords , 1, sizeof(updatedNumOfRecords), myFile);
     }
 
     RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                           const RID &rid, void *data) {
         printf("Start readRecord\n");
+        printf("Finding PAGENUM:{%d} SLOTNUM:{%d}...\n", rid.pageNum, rid.slotNum);
+        void* readBuffer[PAGE_SIZE];
+        RC result = fileHandle.readPage(rid.pageNum,readBuffer);
+        //SearchSlot directory
+        char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer);
         return -1;
     }
 
@@ -132,7 +169,7 @@ namespace PeterDB {
         for (const Attribute& attribute : recordDescriptor){
             std::cout << attribute.name.c_str();
             out << attribute.name.c_str();
-            printf("value of bit arrry:%d \n",bitArray[index]);
+            printf(" value of bit arrry:%d ",bitArray[index]);
             if(bitArray[index] == 1){
                 std::cout << ": NULL";
                 out << ": NULL";\
