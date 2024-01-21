@@ -85,12 +85,11 @@ namespace PeterDB {
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
         void initSlotDirectory(FileHandle &fileHandle, PageNum pageNum);
-        void addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer, int length);
+        unsigned short addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer, int length,char (&buffer)[PAGE_SIZE]);
         char* getSlotDirectoryPointer(void* page);
         short getSlotSize(char* slotPointer);
         char getSlotElementSize(char* slotPointer);
         void readSlotDirectory(void* page);
-        void writeToBuffer(void* data, void* buffer);
         int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
         std::vector<int> serialize(char* bytes);
 
