@@ -1,7 +1,7 @@
 #include "src/include/rbfm.h"
 #include <iostream>
 #include <cmath>
-
+#include <cstring>
 namespace PeterDB {
     RecordBasedFileManager &RecordBasedFileManager::instance() {
         static RecordBasedFileManager _rbf_manager = RecordBasedFileManager();
@@ -39,15 +39,20 @@ namespace PeterDB {
 
         return result;
     }
-    void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle){
-        short freeSpace = 4093;
-        char numOfRecords = 1;
-        FILE* myFile = fileHandle.myFile;
-        fseek(myFile,-2,SEEK_END);
-        size_t writeSlotDirectory = fwrite(&freeSpace, 1, sizeof(freeSpace), myFile);
-        fseek(myFile,-3,SEEK_END);
-        writeSlotDirectory = fwrite(&numOfRecords, 1, sizeof(numOfRecords), myFile);
-        fseek(myFile,0,SEEK_SET);
+    void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle, PageNum pageNum){
+        short freeSpace = 4000;
+        int slotSize = 256;
+        char numOfRecords = 0;
+        char buffer[PAGE_SIZE];
+
+        memcpy(buffer + PAGE_SIZE - sizeof(short), &freeSpace, sizeof(short));
+        buffer[PAGE_SIZE - 3] = numOfRecords;
+
+        for(int i = PAGE_SIZE - 3;i > PAGE_SIZE - slotSize; i-=2){
+            buffer[i] = 0;
+            buffer[i - 1] = 0;
+        }
+        fileHandle.writePage(pageNum, buffer);
     }
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
@@ -62,29 +67,56 @@ namespace PeterDB {
             rid.slotNum = 0;
 
             void* buffer[PAGE_SIZE];
+
             fileHandle.appendPage(data);
-            initSlotDirectory(fileHandle);
+            initSlotDirectory(fileHandle, rid.pageNum);
+
             fileHandle.readPage(0, buffer);
+            readSlotDirectory(buffer);
 
             char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
             short freeSpace = getSlotSize(slotDirectoryPointer);
             char numOfRecords = getSlotElementSize(slotDirectoryPointer);
 
-            // Print the retrieved short value
-            printf("Retrieved short value: %d\n", freeSpace);
-            printf("Retrieved char value: %d\n", numOfRecords);
-
-            fileHandle.writePage(rid.pageNum, data);
+            int dataSize = getRecordSize(recordDescriptor, data);
+            printf("num of records: %d\n", numOfRecords);
             //Update Slot directory by writing to page
-            addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer);
-            fileHandle.readPage(0, buffer);
-            numOfRecords = getSlotElementSize(slotDirectoryPointer);
-            printf("Retrieved updated char value: %d\n", numOfRecords);
+            if((int)numOfRecords == 0){
+                rid.slotNum = 0;
+                std::memcpy(buffer, data, getRecordSize(recordDescriptor, data));\
+                fileHandle.writePage(rid.pageNum, buffer);
+
+                addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer, dataSize);
+                fileHandle.readPage(0, buffer);
+                readSlotDirectory(buffer);
+            }
+            else{
+                for(int i = 1;i <= numOfRecords;i++){
+                    rid.slotNum = i;
+                }
+            }
             return 0;
 
         }
+        else{
+            return 0;
+        }
         return -1;
     }
+    int RecordBasedFileManager::getRecordSize( const std::vector<Attribute> &recordDescriptor,
+                                               const void *data){
+        int size = 0;
+
+        printRecord(recordDescriptor, data, std::cout);
+        for(auto record : recordDescriptor){
+            int length = record.length;
+            size += length;
+        }
+        printf("SIZE OF RECORD BEING WRITTEN: %d\n", size);
+        return size;
+    }
+
+
     char* RecordBasedFileManager::getSlotDirectoryPointer(void* page){
         char* pointer = (char*)(page) + PAGE_SIZE;
         return pointer;
@@ -99,18 +131,82 @@ namespace PeterDB {
         return *numOfRecordsPointer;
     }
 
-    void RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer) {
+    void  RecordBasedFileManager::writeToBuffer(void* data, void* buffer){
+
+    }
+
+    void RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid,
+                                                          char* slotPointer, int length) {
         short slotSize = getSlotSize(slotPointer);
+        char buffer[PAGE_SIZE];
+        fileHandle.readPage(rid.pageNum,buffer);
+
         char numOfRecords = getSlotElementSize(slotPointer);
         unsigned numOfPages = fileHandle.numOfPages;
         char updatedNumOfRecords = (char)((int)numOfRecords + 1);
-        printf("NUm of pages: %d UPDATED char value to: %d\n", numOfPages, numOfRecords);
+
+        printf("Num of pages: %d UPDATED char value to: %d\n", numOfPages, updatedNumOfRecords);
 
         FILE* myFile = fileHandle.myFile;
-        int offset = (numOfPages - rid.pageNum - 1) * PAGE_SIZE;
-        printf("write {%d} to end with offset of {%d}\n", updatedNumOfRecords,offset);
-        fseek(myFile,-offset-3,SEEK_END);
-        fwrite(&updatedNumOfRecords , 1, sizeof(updatedNumOfRecords), myFile);
+        int offset = (numOfPages - rid.pageNum - 1) * PAGE_SIZE; //Get end of N number of pages
+        buffer[PAGE_SIZE - 3] = updatedNumOfRecords;
+
+        printf("done updating new num of records, wrote %lu\n", sizeof(updatedNumOfRecords));
+
+        int differ = 0;
+        slotPointer-=3;
+        int off = 0;
+        int position = (rid.pageNum + 1) * sizeof(int);
+        for(int i = 0;i < numOfRecords; i++){
+            int l;
+            memcpy(&l, buffer+PAGE_SIZE - 3 - position, sizeof(int));
+            printf("FOUND LENGTH: %d", l);
+            off += buffer[PAGE_SIZE - 3 - position];
+        }
+        char d = (char)(differ);
+
+
+        buffer[PAGE_SIZE - 2 - position] = d;
+        printf("trying to update to length of%d", length);
+        memcpy(buffer + PAGE_SIZE - 3 - position - sizeof(int), &off, sizeof(int));
+
+        // Update the length in the buffer
+        memcpy(buffer + PAGE_SIZE - 3 - position, &length, sizeof(int));
+        fileHandle.writePage(rid.pageNum, buffer);
+        readSlotDirectory(buffer);
+
+        printf("done updating slot directory\n");
+    }
+
+    void RecordBasedFileManager::readSlotDirectory(void* page){
+        printf("\nOUTPUTING SLOT DIRECTORY TO CHECK:\n");
+        char* slothead = getSlotDirectoryPointer(page);
+        short freesize = getSlotSize(slothead);
+        char n = getSlotElementSize(slothead);
+
+        uint8_t* bytePtr = (uint8_t*)page;
+        for (size_t i = 0; i < 100; ++i) {
+            printf("%02X ", bytePtr[i]);
+
+            if ((i + 1) % 32 == 0) {
+                printf("\n");
+            }
+        }
+        printf("\nFIRST 100 BYTES\n");
+        for (size_t i = 3800; i < PAGE_SIZE; ++i) {
+            printf("%02X ", bytePtr[i]);
+
+            if ((i + 1) % 32 == 0) {
+                printf("\n");
+            }
+        }
+
+        for (int i = PAGE_SIZE-3; i >= (PAGE_SIZE-3-(n*2)); --i) {
+            printf("{%d:%d}\n", i, bytePtr[i]); // Adjust this based on your slot data structure
+        }
+
+        printf("Elements in slot{%d}, Free space:{%hd}\n", n,freesize);
+        printf("\nDONE CHECK\n");
     }
 
     RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
@@ -119,9 +215,17 @@ namespace PeterDB {
         printf("Finding PAGENUM:{%d} SLOTNUM:{%d}...\n", rid.pageNum, rid.slotNum);
         void* readBuffer[PAGE_SIZE];
         RC result = fileHandle.readPage(rid.pageNum,readBuffer);
-        //SearchSlot directory
-        char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer);
-        return -1;
+        int length = getRecordSize(recordDescriptor, data);
+        char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer) - 3;
+        int totalOffset = 0;
+        for(int i = 0;i<rid.slotNum;i++){
+            int offset;
+            memcpy(&offset, slotDirectoryPointer - sizeof(int), sizeof(int));
+            totalOffset+=offset;
+        }
+        memcpy(data, readBuffer+totalOffset, length);
+
+        return 0;
     }
 
     RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
@@ -160,25 +264,17 @@ namespace PeterDB {
         }
 
         std::vector<int> bitArray = serialize(nullIndicators);
-        printf(" bitArray: ");
-        for(auto i : bitArray){
-            printf("%d", i);
-        }
 
         int index = 0;
         for (const Attribute& attribute : recordDescriptor){
-            std::cout << attribute.name.c_str();
             out << attribute.name.c_str();
-            printf(" value of bit arrry:%d ",bitArray[index]);
+
             if(bitArray[index] == 1){
-                std::cout << ": NULL";
-                out << ": NULL";\
+                out << ": NULL";
                 if(index == recordDescriptor.size() - 1){
-                    std::cout<< "\n";
                     out<< "\n";
                 }
                 else{
-                    std::cout<< ", ";
                     out<< ", ";
                 }
                 index ++;
@@ -187,40 +283,31 @@ namespace PeterDB {
 
             switch (attribute.type) {
                 case TypeInt:
-                    std::cout << ": " << *(int*)dataPointer;
                     out << ": " << *(int*)dataPointer;
                     dataPointer +=4;
                     break;
                 case TypeReal:
-                    std::cout<< ": " << *(float*)dataPointer;
                     out<< ": " << *(float*)dataPointer;
                     dataPointer +=4;
                     break;
                 case TypeVarChar:
-                    std::cout << ": ";
                     out << ": ";
                     int* length= (int*)dataPointer;
                     dataPointer += 4;
                     for(int i = 0; i < *length; i++){
-                        std::cout<<*dataPointer;
                         out<<*dataPointer;
                         dataPointer++;
                     }
                     break;
             }
-
             if(index == recordDescriptor.size() - 1){
-                std::cout<< "\n";
                 out<< "\n";
             }
             else{
-                std::cout<< ", ";
                 out<< ", ";
             }
             index ++;
         }
-
-
         return -1;
     }
 

@@ -25,6 +25,11 @@ namespace PeterDB {
         AttrLength length; // attribute length
     } Attribute;
 
+    typedef struct SlotEntry{
+        char offset;
+        char length;
+    } SlotEntry;
+
     // Comparison Operator (NOT needed for part 1 of the project)
     typedef enum {
         EQ_OP = 0, // no condition// =
@@ -79,12 +84,14 @@ namespace PeterDB {
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a record-based file
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
-        void initSlotDirectory(FileHandle &fileHandle);
-        void addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer);
+        void initSlotDirectory(FileHandle &fileHandle, PageNum pageNum);
+        void addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer, int length);
         char* getSlotDirectoryPointer(void* page);
         short getSlotSize(char* slotPointer);
         char getSlotElementSize(char* slotPointer);
-
+        void readSlotDirectory(void* page);
+        void writeToBuffer(void* data, void* buffer);
+        int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
         std::vector<int> serialize(char* bytes);
 
         //  Format of the data passed into the function is the following:
