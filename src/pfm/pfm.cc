@@ -145,7 +145,7 @@ namespace PeterDB {
         else{
             return 0;
         }
-        return 0;
+
     }
 
     RC FileHandle::appendPage(const void *data) {
@@ -153,7 +153,8 @@ namespace PeterDB {
         numOfPages++;
         appendPageCounter++;
         fseek(myFile,0,SEEK_END);
-        size_t write = fwrite(data, 1, PAGE_SIZE, myFile);;
+        size_t write = fwrite(data, PAGE_SIZE, 1, myFile);
+
 
         if(write <= 0){
             perror("Write Error: appendPage");
@@ -163,6 +164,7 @@ namespace PeterDB {
             return 0;
         }
     }
+
 
     unsigned FileHandle::getNumberOfPages() {
         return numOfPages;

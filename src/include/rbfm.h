@@ -25,6 +25,11 @@ namespace PeterDB {
         AttrLength length; // attribute length
     } Attribute;
 
+    typedef struct SlotEntry{
+        char offset;
+        char length;
+    } SlotEntry;
+
     // Comparison Operator (NOT needed for part 1 of the project)
     typedef enum {
         EQ_OP = 0, // no condition// =
@@ -68,6 +73,8 @@ namespace PeterDB {
 
     class RecordBasedFileManager {
     public:
+
+
         static RecordBasedFileManager &instance();                          // Access to the singleton instance
 
         RC createFile(const std::string &fileName);                         // Create a new record-based file
@@ -77,6 +84,17 @@ namespace PeterDB {
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a record-based file
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
+        void initSlotDirectory(FileHandle &fileHandle, PageNum pageNum);
+        unsigned short addRecordToSlotDirectory(FileHandle &fileHandle,
+                                                RID &rid, char* slotPointer,
+                                                int length,char (&buffer)[PAGE_SIZE],
+                                                int &offsetPointer);
+        char* getSlotDirectoryPointer(void* page);
+        short getSlotSize(char* slotPointer);
+        char getSlotElementSize(char* slotPointer);
+        void readSlotDirectory(void* page);
+        int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
+        std::vector<int> serialize(char* bytes);
 
         //  Format of the data passed into the function is the following:
         //  [n byte-null-indicators for y fields] [actual value for the first field] [actual value for the second field] ...
@@ -109,6 +127,7 @@ namespace PeterDB {
         //        age: NULL  height: 7.5  salary: 7500)
         RC printRecord(const std::vector<Attribute> &recordDescriptor, const void *data, std::ostream &out);
 
+
         /*****************************************************************************************************
         * IMPORTANT, PLEASE READ: All methods below this comment (other than the constructor and destructor) *
         * are NOT required to be implemented for Project 1                                                   *
@@ -132,6 +151,9 @@ namespace PeterDB {
                 const void *value,                    // used in the comparison
                 const std::vector<std::string> &attributeNames, // a list of projected attributes
                 RBFM_ScanIterator &rbfm_ScanIterator);
+
+
+
 
     protected:
         RecordBasedFileManager();                                                   // Prevent construction

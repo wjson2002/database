@@ -55,9 +55,6 @@ namespace PeterDB {
         void loadFile();
         void flushFile();
         void initPage();
-        void readHiddenPage();
-        void writeHiddenPage();
-
         void getFileSize(FILE* file);
 
     };
