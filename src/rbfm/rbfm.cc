@@ -68,6 +68,7 @@ namespace PeterDB {
         PageNum pageNumber = rid.pageNum;
         int totalNumOfPages = fileHandle.numOfPages;
         int recordSize = getRecordSize(recordDescriptor,data);
+        int offsetPointer = 0;
         if(recordSize > 4000){
 
             printf("WARNING RECORD OVERSIZED CANNOT FIT IN PAGE\n");
@@ -92,8 +93,8 @@ namespace PeterDB {
 
                 rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                        slotDirectoryPointer,
-                                                       recordSize, buffer);
-                std::memcpy(buffer, data, getRecordSize(recordDescriptor, data));
+                                                       recordSize, buffer, offsetPointer);
+                std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
                 fileHandle.writePage(rid.pageNum, buffer);
                 printf("Wrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
                 fileHandle.readPage(0, buffer);
@@ -110,8 +111,8 @@ namespace PeterDB {
         char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
         short freeSpace = getSlotSize(slotDirectoryPointer);
         char numOfRecords = getSlotElementSize(slotDirectoryPointer);
-        rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer, recordSize, buffer);
-        std::memcpy(buffer, data, getRecordSize(recordDescriptor, data));
+        rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer, recordSize, buffer, offsetPointer);
+        std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
         printf("FWrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
 
@@ -151,7 +152,7 @@ namespace PeterDB {
 
 
     unsigned short RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid,
-                                                          char* slotPointer, int length, char (&buffer)[PAGE_SIZE]) {
+                                                          char* slotPointer, int length, char (&buffer)[PAGE_SIZE], int &offsetPointer) {
 
         char numOfRecords = getSlotElementSize(slotPointer);
         short freeSize = getSlotSize(slotPointer);

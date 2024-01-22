@@ -85,7 +85,10 @@ namespace PeterDB {
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
         void initSlotDirectory(FileHandle &fileHandle, PageNum pageNum);
-        unsigned short addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid, char* slotPointer, int length,char (&buffer)[PAGE_SIZE]);
+        unsigned short addRecordToSlotDirectory(FileHandle &fileHandle,
+                                                RID &rid, char* slotPointer,
+                                                int length,char (&buffer)[PAGE_SIZE],
+                                                int &offsetPointer);
         char* getSlotDirectoryPointer(void* page);
         short getSlotSize(char* slotPointer);
         char getSlotElementSize(char* slotPointer);
