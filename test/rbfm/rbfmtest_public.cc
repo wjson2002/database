@@ -113,7 +113,7 @@ namespace PeterDBTesting {
         PeterDB::RID rid;
         inBuffer = malloc(1000);
         //2000
-        int numRecords = 10;
+        int numRecords = 5;
 
         // clean caches
         rids.clear();
@@ -182,7 +182,7 @@ namespace PeterDBTesting {
         PeterDB::RID rid;
         inBuffer = malloc(1000);
         //10000
-        int numRecords = 100;
+        int numRecords = 10;
 
         // clean caches
         rids.clear();

@@ -126,6 +126,7 @@ namespace PeterDB {
 
     int RecordBasedFileManager::getRecordSize( const std::vector<Attribute> &recordDescriptor,
                                                const void *data){
+
         int size = 0;
 
        //printRecord(recordDescriptor, data, std::cout);
@@ -135,6 +136,7 @@ namespace PeterDB {
         }
 
         printf("SIZE OF RECORD BEING WRITTEN: %d\n", size);
+        printRecord(recordDescriptor, data, std::cout);
         return size;
     }
 
@@ -227,20 +229,29 @@ namespace PeterDB {
                                           const RID &rid, void *data) {
         printf("Start readRecord\n");
         printf("Finding PAGENUM:{%d} SLOTNUM:{%d}...\n", rid.pageNum, rid.slotNum);
-        void* readBuffer[PAGE_SIZE];
-        RC result = fileHandle.readPage(rid.pageNum,readBuffer);
-        readSlotDirectory(readBuffer);
-        int length = getRecordSize(recordDescriptor, data);
-        char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer) - 3;
-        int totalOffset = 0;
-        for(int i = 0;i<rid.slotNum;i++){
-            int offset;
-            memcpy(&offset, slotDirectoryPointer - sizeof(int), sizeof(int));
-            totalOffset+=offset;
-        }
-        printf("TOTAL OFFSET OF RECORD: %d\n", totalOffset);
-        memcpy(data, readBuffer+totalOffset, length);
+        void* readBuffer = malloc(PAGE_SIZE);
 
+        RC result = fileHandle.readPage(rid.pageNum,readBuffer);
+        int length = getRecordSize(recordDescriptor, data);
+        char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer);
+        int totalOffset = 0;
+
+        memcpy(&totalOffset,
+               slotDirectoryPointer - 3 - (2 * sizeof(int)) - (rid.slotNum) * 8,
+               sizeof(int));
+
+
+        printf("TOTAL OFFSET OF RECORD: %d\n", totalOffset);
+        memcpy(data, (char*)readBuffer+totalOffset, length);
+        uint8_t* bytePtr = (uint8_t*)data;
+        for (size_t i = 0; i < length; ++i) {
+            printf("%02X ", bytePtr[i]);
+
+            if ((i + 1) % 32 == 0) {
+                printf("\n");
+            }
+        }
+        free(readBuffer);
         return 0;
     }
 
@@ -271,9 +282,10 @@ namespace PeterDB {
         char* dataPointer = (char*)data;
 
         char nullIndicators[numOfNullBytes];
-
-        for (int i = 0; i < numOfNullBytes; ++i) {
-            nullIndicators[i] = dataPointer [i];
+        printf("Num of num bytes %d \n", numOfNullBytes);
+        for (int i = 0; i < numOfNullBytes; i++) {
+            nullIndicators[i] = *dataPointer;
+            //printf("*dataPointer[i]%02X", dataPointer[i]);
             dataPointer++;
         }
 
@@ -301,12 +313,14 @@ namespace PeterDB {
                     dataPointer +=4;
                     break;
                 case TypeReal:
+
                     out<< ": " << *(float*)dataPointer;
                     dataPointer +=4;
                     break;
                 case TypeVarChar:
                     out << ": ";
                     int* length= (int*)dataPointer;
+
                     dataPointer += 4;
                     for(int i = 0; i < *length; i++){
                         out<<*dataPointer;
