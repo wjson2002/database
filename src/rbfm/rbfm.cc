@@ -43,8 +43,8 @@ namespace PeterDB {
     }
     void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle, PageNum pageNum){
 
-        short freeSpace = 3400;
-        int slotSize = 256;
+        short freeSpace = 3000;
+        int slotSize = 100;
         char numOfRecords = 0;
         char buffer[PAGE_SIZE];
 
@@ -91,16 +91,15 @@ namespace PeterDB {
             char numOfRecords = getSlotElementSize(slotDirectoryPointer);
 
             if(freeSpace >= recordSize){
-
                 rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                        slotDirectoryPointer,
                                                        recordSize, buffer, offsetPointer);
-                printf("Offset: %d\n",(int)offsetPointer);
+
+                printf("Offset: %d, Reading: %d\n",(int)offsetPointer, getRecordSize(recordDescriptor, data));
                 std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
                 fileHandle.writePage(rid.pageNum, buffer);
                 printf("Wrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
                 fileHandle.readPage(0, buffer);
-                readSlotDirectory(buffer);
                 return 0;
             }
         }
@@ -109,15 +108,15 @@ namespace PeterDB {
         rid.pageNum = fileHandle.numOfPages - 1;
         initSlotDirectory(fileHandle, rid.pageNum);
         fileHandle.readPage(rid.pageNum, buffer);
-        readSlotDirectory(buffer);
+       // readSlotDirectory(buffer);
         char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
         short freeSpace = getSlotSize(slotDirectoryPointer);
         char numOfRecords = getSlotElementSize(slotDirectoryPointer);
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer, recordSize, buffer, offsetPointer);
-        printf("Offset: %d\n",(int)offsetPointer);
+        printf("Offset: %d, Reading: %d\n",(int)offsetPointer, getRecordSize(recordDescriptor, data));
         std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
-        printf("FWrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
+        printf("FWrote pgNum{%d} slNum{%d} , total pages:%d\n", rid.pageNum, rid.slotNum, fileHandle.numOfPages);
 
         return 0;
 
@@ -126,17 +125,15 @@ namespace PeterDB {
 
     int RecordBasedFileManager::getRecordSize( const std::vector<Attribute> &recordDescriptor,
                                                const void *data){
-
         int size = 0;
 
-       //printRecord(recordDescriptor, data, std::cout);
         for(auto record : recordDescriptor){
             int length = record.length;
             size += length;
         }
 
         printf("SIZE OF RECORD BEING WRITTEN: %d\n", size);
-        printRecord(recordDescriptor, data, std::cout);
+
         return size;
     }
 
@@ -206,14 +203,6 @@ namespace PeterDB {
         char n = getSlotElementSize(slothead);
 
         uint8_t* bytePtr = (uint8_t*)page;
-        for (size_t i = 0; i < 650; ++i) {
-            printf("%02X ", bytePtr[i]);
-
-            if ((i + 1) % 32 == 0) {
-                printf("\n");
-            }
-        }
-        printf("\nFIRST 100 BYTES\n");
         for (size_t i = 4000; i < PAGE_SIZE; ++i) {
             printf("%02X ", bytePtr[i]);
 
@@ -221,6 +210,14 @@ namespace PeterDB {
                 printf("\n");
             }
         }
+//        printf("\nFIRST 100 BYTES\n");
+//        for (size_t i = 4000; i < PAGE_SIZE; ++i) {
+//            printf("%02X ", bytePtr[i]);
+//
+//            if ((i + 1) % 32 == 0) {
+//                printf("\n");
+//            }
+//        }
         printf("Elements in slot{%d}, Free space:{%hd}\n", n,freesize);
         printf("\nDONE CHECK\n");
     }
@@ -229,9 +226,8 @@ namespace PeterDB {
                                           const RID &rid, void *data) {
         printf("Start readRecord\n");
         printf("Finding PAGENUM:{%d} SLOTNUM:{%d}...\n", rid.pageNum, rid.slotNum);
-        void* readBuffer = malloc(PAGE_SIZE);
-
-        RC result = fileHandle.readPage(rid.pageNum,readBuffer);
+        char readBuffer[PAGE_SIZE];
+        fileHandle.readPage(rid.pageNum,readBuffer);
         readSlotDirectory(readBuffer);
         int length = getRecordSize(recordDescriptor, data);
         char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer);
@@ -241,8 +237,9 @@ namespace PeterDB {
                slotDirectoryPointer - 3 - (2 * sizeof(int)) - (rid.slotNum) * 8 , sizeof(int));
 
 
-        printf("TOTAL OFFSET OF RECORD: %d\n", totalOffset);
-        memcpy(data, (char*)readBuffer+totalOffset, length);
+        printf("TOTAL OFFSET OF RECORD: %dReading: %d\n", totalOffset, getRecordSize(recordDescriptor, data));
+        memcpy(data, readBuffer+totalOffset, length);
+        readSlotDirectory(readBuffer);
         uint8_t* bytePtr = (uint8_t*)data;
         for (size_t i = 0; i < length; ++i) {
             printf("%02X ", bytePtr[i]);
@@ -251,7 +248,7 @@ namespace PeterDB {
                 printf("\n");
             }
         }
-        free(readBuffer);
+
         printRecord(recordDescriptor,data,std::cout);
         return 0;
     }

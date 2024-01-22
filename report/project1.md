@@ -12,23 +12,23 @@
 ### 2. Internal Record Format
 
 - Show your record format design.
-
+![img_3.png](img_3.png)
 
 - Describe how you store a null field.
-
+I store the null field at the start of each record. 
 
 
 - Describe how you store a VarChar field.
-
+I use a fixed length of size attr.length to store the field.
 
 
 - Describe how your record design satisfies O(1) field access.
-
+Each field has a pointer to it in the slot directory allowing for O(1) access
 
 ### 3. Page Format
 - Show your page format design.
 
-![](C:\Winter2024\proj1PageFormat.png)
+![](proj1PageFormat.png)
 
 - Explain your slot directory design if applicable.
 
@@ -62,6 +62,10 @@ This page stores each variable as a unsigned int at the start of the hidden page
 ### 5. Implementation Detail
 - Other implementation details goes here.
 
+Slot Directory needs reserved space so that adding records to the page does not overwrite the directory.
+Need to find a balance of free space to space allocated for directory. 
+
+
 
 
 ### 6. Member contribution (for team of two)
@@ -72,6 +76,9 @@ This page stores each variable as a unsigned int at the start of the hidden page
 ### 7. Other (optional)
 - Freely use this section to tell us about things that are related to the project 1, but not related to the other sections (optional)
 
-
+Spent a lot of time fixing bugs and unable to pinpoint why write/read records fails in some cases.
 
 - Feedback on the project to help improve the project. (optional)
+
+Project one is somewhat tough, as I am also very rusty in C++. I feel like only implementing Paged Manager is enough for project one.
+Record Manager should be pushed to project two.
