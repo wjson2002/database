@@ -100,7 +100,7 @@ namespace PeterDB {
                 fileHandle.writePage(rid.pageNum, buffer);
                 printf("Wrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
                 fileHandle.readPage(0, buffer);
-                //readSlotDirectory(buffer);
+                readSlotDirectory(buffer);
                 return 0;
             }
         }
@@ -133,7 +133,8 @@ namespace PeterDB {
             int length = record.length;
             size += length;
         }
-        //printf("SIZE OF RECORD BEING WRITTEN: %d\n", size);
+
+        printf("SIZE OF RECORD BEING WRITTEN: %d\n", size);
         return size;
     }
 
@@ -167,7 +168,6 @@ namespace PeterDB {
             printf("freesize: {%d} no records default update {%d}, {%d}: \n",freeSize ,updatedNumOfRecords, newSize);
             buffer[PAGE_SIZE - 3] = updatedNumOfRecords;
             memcpy(buffer + PAGE_SIZE - 3 - sizeof(int), &length, sizeof(int));
-            readSlotDirectory(buffer);
             offsetPointer=0;
         }
         else
@@ -180,18 +180,19 @@ namespace PeterDB {
 
             for(int i = 0;i < numOfRecords; i++) {
                 int l;
-                memcpy(&l, buffer+PAGE_SIZE - 3 - sizeof(int) * (i + 2), sizeof(int));
+                memcpy(&l, buffer+PAGE_SIZE - 3 - (8 * i) - sizeof(int), sizeof(int));
                 printf("FOUND LENGTH: %d\n", l);
                 totalLength += l;
             }
             printf("adding pagenum:%d, slotnum:%d\n", rid.pageNum, slotNum);
             //update offset
-            memcpy(buffer + PAGE_SIZE - 3 - (slotNum + 2) * sizeof(int) - sizeof(int), &totalLength, sizeof(int));
+            memcpy(buffer + PAGE_SIZE - 3 - 2 * sizeof(int) - (slotNum) * 8, &totalLength, sizeof(int));
 //            // Update the length of element in the buffer
-            memcpy(buffer + PAGE_SIZE - 3 - (slotNum + 2) * sizeof(int), &length, sizeof(int));
-            //printf("done updating slot directory\n");
-            offsetPointer=abs(totalLength-length);
-            readSlotDirectory(buffer);
+            memcpy(buffer + PAGE_SIZE - 3 - sizeof(int) - (slotNum) * 8, &length, sizeof(int));
+            printf("done updating slot directory: total len{%d}, len{%d}\n", totalLength, length);
+            offsetPointer=totalLength;
+            printf("SetOFFSET POINTER TO %d", (int)offsetPointer);
+
         }
         return slotNum;
     }
