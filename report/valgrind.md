@@ -14,6 +14,12 @@
 For example, using breakpoints, step in/step out/step over, evaluate expressions, etc. 
 ![img.png](img.png)
 Used Clion debugger to check the values of variables such as RID.
+![img_4.png](img_4.png)
+Here I am debugging the insertRecord function by stepping into it and viewing the variables.
+- I use breakpoints to stop at the function to more carefully inspect it.
+- ![img_5.png](img_5.png)
+Debugger is very helpful for visualizing your code as seen in the image it displays the variable values.
+I used this functionality to view the record values I save/write to the page.
 ### 3. Using Valgrind
 - Describe how you use Valgrind to detect memory leaks and other problems in your code and show screenshot of the Valgrind report.
 ![img_1.png](img_1.png)
