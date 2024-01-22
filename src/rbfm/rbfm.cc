@@ -83,7 +83,6 @@ namespace PeterDB {
         }
 
         for(int i = 0;i < fileHandle.numOfPages;i++){
-            printf("Loop Start [%d]\n", i);
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
             char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
