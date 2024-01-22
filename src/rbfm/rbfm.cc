@@ -83,6 +83,7 @@ namespace PeterDB {
         }
 
         for(int i = 0;i < fileHandle.numOfPages;i++){
+            printf("Loop Start [%d]\n", i);
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
             char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
@@ -94,6 +95,7 @@ namespace PeterDB {
                 rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                        slotDirectoryPointer,
                                                        recordSize, buffer, offsetPointer);
+                printf("Offset: %d\n",(int)offsetPointer);
                 std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
                 fileHandle.writePage(rid.pageNum, buffer);
                 printf("Wrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
@@ -112,6 +114,7 @@ namespace PeterDB {
         short freeSpace = getSlotSize(slotDirectoryPointer);
         char numOfRecords = getSlotElementSize(slotDirectoryPointer);
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,slotDirectoryPointer, recordSize, buffer, offsetPointer);
+        printf("Offset: %d\n",(int)offsetPointer);
         std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
         printf("FWrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
@@ -165,6 +168,7 @@ namespace PeterDB {
             buffer[PAGE_SIZE - 3] = updatedNumOfRecords;
             memcpy(buffer + PAGE_SIZE - 3 - sizeof(int), &length, sizeof(int));
             readSlotDirectory(buffer);
+            offsetPointer=0;
         }
         else
         {
@@ -186,7 +190,7 @@ namespace PeterDB {
 //            // Update the length of element in the buffer
             memcpy(buffer + PAGE_SIZE - 3 - (slotNum + 2) * sizeof(int), &length, sizeof(int));
             //printf("done updating slot directory\n");
-
+            offsetPointer=abs(totalLength-length);
             readSlotDirectory(buffer);
         }
         return slotNum;
@@ -199,7 +203,7 @@ namespace PeterDB {
         char n = getSlotElementSize(slothead);
 
         uint8_t* bytePtr = (uint8_t*)page;
-        for (size_t i = 0; i < 32; ++i) {
+        for (size_t i = 0; i < 650; ++i) {
             printf("%02X ", bytePtr[i]);
 
             if ((i + 1) % 32 == 0) {

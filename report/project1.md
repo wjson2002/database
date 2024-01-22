@@ -10,7 +10,7 @@
 
 
 ### 2. Internal Record Format
-**_Not implemented yet._**
+
 - Show your record format design.
 
 
