@@ -43,7 +43,7 @@ namespace PeterDB {
     }
     void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle, PageNum pageNum){
 
-        short freeSpace = 4000;
+        short freeSpace = 3400;
         int slotSize = 256;
         char numOfRecords = 0;
         char buffer[PAGE_SIZE];
@@ -83,6 +83,7 @@ namespace PeterDB {
         }
 
         for(int i = 0;i < fileHandle.numOfPages;i++){
+            printf("Loop Start [%d]\n", i);
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
             char* slotDirectoryPointer = getSlotDirectoryPointer(buffer);
@@ -231,13 +232,13 @@ namespace PeterDB {
         void* readBuffer = malloc(PAGE_SIZE);
 
         RC result = fileHandle.readPage(rid.pageNum,readBuffer);
+        readSlotDirectory(readBuffer);
         int length = getRecordSize(recordDescriptor, data);
         char* slotDirectoryPointer = getSlotDirectoryPointer(readBuffer);
         int totalOffset = 0;
 
         memcpy(&totalOffset,
-               slotDirectoryPointer - 3 - (2 * sizeof(int)) - (rid.slotNum) * 8,
-               sizeof(int));
+               slotDirectoryPointer - 3 - (2 * sizeof(int)) - (rid.slotNum) * 8 , sizeof(int));
 
 
         printf("TOTAL OFFSET OF RECORD: %d\n", totalOffset);
@@ -251,6 +252,7 @@ namespace PeterDB {
             }
         }
         free(readBuffer);
+        printRecord(recordDescriptor,data,std::cout);
         return 0;
     }
 

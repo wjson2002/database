@@ -113,7 +113,7 @@ namespace PeterDBTesting {
         PeterDB::RID rid;
         inBuffer = malloc(1000);
         //2000
-        int numRecords = 5;
+        int numRecords = 10;
 
         // clean caches
         rids.clear();
@@ -132,7 +132,7 @@ namespace PeterDBTesting {
 
         // Insert 2000 records into file
         for (int i = 0; i < numRecords; i++) {
-
+            printf("running {%d}\n",i);
             // Test insert Record
             int size = 0;
             memset(inBuffer, 0, 1000);
