@@ -12,15 +12,15 @@
 ### 2. Internal Record Format
 
 - Show your record format design.
-![img_3.png](img_3.png)
+![img_7.png](internalRecordFormat.png)
 
 - Describe how you store a null field.
 I store the null field at the start of each record. 
 I calculate the number of bytes using the formula provided (n = ceil(y / 8)).
-To store n number of bytes for null field
+Then store n number of bytes for null field.
 
 - Describe how you store a VarChar field.
-VarChar is compressed by the given size of the first byte. I read this byte and allocate enough space for the 
+VarChar is compressed by the given size of the first byte. I read byte N and allocate N bytes of space for the 
 size of the string.
 
 
@@ -84,9 +84,9 @@ Before the submission deadline:
 I Spent a lot of time fixing bugs and unable to pinpoint why write/read records fails in some cases.
 
 After submission deadline (Grace period):
-I ended up changing the entire structure of my design by moving the slot directory orginally located at end of page and moved it to the front of the page.
+I ended up changing the entire structure of my design by moving the slot directory originally located at end of page and moved it to the front of the page.
 This fixed a lot of buffer issues I was encountering and made design simpler.
-Also used CLion debugger to speed up debugging process.
+Also used CLion debugger to pinpoint where seg faults occur to speed up debugging process.
 
 - Feedback on the project to help improve the project. (optional)
 
