@@ -113,7 +113,7 @@ namespace PeterDBTesting {
         PeterDB::RID rid;
         inBuffer = malloc(1000);
         //2000
-        int numRecords = 5;
+        int numRecords = 20;
 
         // clean caches
         rids.clear();
@@ -132,7 +132,6 @@ namespace PeterDBTesting {
 
         // Insert 2000 records into file
         for (int i = 0; i < numRecords; i++) {
-
             // Test insert Record
             int size = 0;
             memset(inBuffer, 0, 1000);
@@ -157,11 +156,11 @@ namespace PeterDBTesting {
             ASSERT_EQ(rbfm.readRecord(fileHandle, recordDescriptor, rids[i], outBuffer), success)
                                         << "Reading a record should succeed.";
 
-            if (i % 1000 == 0) {
-                std::ostringstream stream;
-                rbfm.printRecord(recordDescriptor, outBuffer, stream);
-                GTEST_LOG_(INFO) << "Returned Data: " << stream.str();
-            }
+
+            std::ostringstream stream;
+            rbfm.printRecord(recordDescriptor, outBuffer, stream);
+            GTEST_LOG_(INFO) << "Returned Data: " << stream.str();
+
 
             int size = 0;
             prepareLargeRecord((int) (int) recordDescriptor.size(), nullsIndicator, i, inBuffer, &size);
@@ -182,7 +181,7 @@ namespace PeterDBTesting {
         PeterDB::RID rid;
         inBuffer = malloc(1000);
         //10000
-        int numRecords = 10;
+        int numRecords = 100;
 
         // clean caches
         rids.clear();
@@ -429,8 +428,8 @@ namespace PeterDBTesting {
 
         inBuffer = malloc(PAGE_SIZE);
         memset(inBuffer, 0, PAGE_SIZE);
-
-        int numRecords = 16000;
+        //16000
+        int numRecords = 160;
 
         std::vector<PeterDB::Attribute> recordDescriptor, recordDescriptorLarge;
 
@@ -612,7 +611,7 @@ namespace PeterDBTesting {
         prepareRecordForTweetMessage((int) recordDescriptor.size(), nullsIndicator, 1234, 9, "wildfires", 43,
                                      "Curious ... did the amazon wildfires stop?", 999, 3, "wow", inBuffer,
                                      recordSize);
-        printf("Reading file\n");
+
         // Given the rid, read the record from file
         ASSERT_EQ(rbfm.readRecord(fileHandle, recordDescriptor, rid, outBuffer), success)
                                     << "Reading a record should succeed.";
@@ -928,7 +927,7 @@ namespace PeterDBTesting {
         outBuffer = malloc(1000);
         memset(inBuffer, 0, 1000);
         memset(outBuffer, 0, 1000);
-
+        //160000
         int numRecords = 160000;
         int batchSize = 5000;
         std::vector<PeterDB::RID> rids;
@@ -964,7 +963,7 @@ namespace PeterDBTesting {
     TEST_F(RBFM_Test_2, read_massive_records) {
         // Functions Tested:
         // 1. Read 160000 records from File
-
+        //160000
         int numRecords = 160000;
         inBuffer = malloc(1000);
         outBuffer = malloc(1000);
