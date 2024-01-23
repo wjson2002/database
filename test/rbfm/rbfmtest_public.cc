@@ -928,7 +928,7 @@ namespace PeterDBTesting {
         memset(inBuffer, 0, 1000);
         memset(outBuffer, 0, 1000);
         //160000
-        int numRecords = 16;
+        int numRecords = 160000;
         int batchSize = 5000;
         std::vector<PeterDB::RID> rids;
 

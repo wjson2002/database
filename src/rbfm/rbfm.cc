@@ -84,8 +84,9 @@ namespace PeterDB {
             fileHandle.appendPage(data);
             initSlotDirectory(fileHandle, 0);
         }
-
-        for(int i = 0;i < fileHandle.numOfPages;i++){
+        //Check last page (newly appended page) first
+        int numOfPages = fileHandle.numOfPages - 1;
+        for(int i = numOfPages;i >= 0;i--){
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
             short freeSpace;
@@ -94,28 +95,19 @@ namespace PeterDB {
             if(freeSpace >= recordSize){
                 rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                        recordSize, buffer, offsetPointer);
-
-               // printf("Offset: %d, WRITING: %d\n",(int)offsetPointer, recordSize);
                 std::memcpy(buffer+offsetPointer, data, recordSize);
-                //readSlotDirectory(buffer);
                 fileHandle.writePage(rid.pageNum, buffer);
-               // printf("Wrote pgNum{%d} slNum{%d}\n", rid.pageNum, rid.slotNum);
-                //printf("RETURNING\n");
                 return 0;
             }
         }
-        //printf("No free space avail: ADDING NEW PAGE\n");
+        //No free space avail: ADDING NEW PAGE
         fileHandle.appendPage(data);
         rid.pageNum = fileHandle.numOfPages - 1;
         initSlotDirectory(fileHandle, rid.pageNum);
         fileHandle.readPage(rid.pageNum, buffer);
-
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid, recordSize, buffer, offsetPointer);
-       // printf("Offset: %d, Reading: %d\n",(int)offsetPointer, getRecordSize(recordDescriptor, data));
         std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
-       // printf("FWrote pgNum{%d} slNum{%d} , total pages:%d\n", rid.pageNum, rid.slotNum, fileHandle.numOfPages);
-
         return 0;
 
     }
@@ -207,23 +199,13 @@ namespace PeterDB {
                 printf("\n");
             }
         }
-//        printf("\nFIRST 100 BYTES\n");
-//        for (size_t i = 4000; i < PAGE_SIZE; ++i) {
-//            printf("%02X ", bytePtr[i]);
-//
-//            if ((i + 1) % 32 == 0) {
-//                printf("\n");
-//            }
-//        }
+
         printf("Elements in slot{%d}, Free space:{%hd}\n", numOfRecords,freeSize);
     }
 
     RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                           const RID &rid, void *data) {
         //printf("Start readRecord\n");
-//        printf("Finding PAGENUN:{%u} \n",rid.pageNum);
-//        printf("Finding PAGENUM:{%u} SLOTNUM:{%u}...\n", rid.pageNum, rid.slotNum);
-        //printf("Finding SLOT NUM\n");
         char readBuffer[PAGE_SIZE];
         fileHandle.readPage(rid.pageNum,readBuffer);
 
@@ -236,20 +218,8 @@ namespace PeterDB {
         memcpy(&totalOffset,
                readBuffer + 2 + (2 * sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
 
-
-       // printf("TOTAL OFFSET OF RECORD: %d, Reading: %d\n", totalOffset, length);
         memcpy(data, readBuffer+totalOffset, length);
 
-//        uint8_t* bytePtr = (uint8_t*)data;
-//        for (size_t i = 0; i < length; ++i) {
-//            printf("%02X ", bytePtr[i]);
-//
-//            if ((i + 1) % 32 == 0) {
-//                printf("\n");
-//            }
-//        }
-
-//        printRecord(recordDescriptor,data,std::cout);
         return 0;
     }
 
@@ -338,10 +308,6 @@ namespace PeterDB {
         }
 
         std::vector<int> bitArray = serialize(nullIndicators, numOfNullBytes);
-//        for (int value : bitArray) {
-//            std::cout << value << " ";
-//        }
-//        printf("\n");
         int index = 0;
         for (const Attribute& attribute : recordDescriptor){
             out << attribute.name.c_str();
@@ -357,7 +323,6 @@ namespace PeterDB {
                 index ++;
                 continue;
             }
-
             switch (attribute.type) {
                 case TypeInt:
                     out << ": " << *(int*)dataPointer;
