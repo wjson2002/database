@@ -16,14 +16,16 @@
 
 - Describe how you store a null field.
 I store the null field at the start of each record. 
-
+I calculate the number of bytes using the formula provided (n = ceil(y / 8)).
+To store n number of bytes for null field
 
 - Describe how you store a VarChar field.
-I use a fixed length of size attr.length to store the field.
+VarChar is compressed by the given size of the first byte. I read this byte and allocate enough space for the 
+size of the string.
 
 
 - Describe how your record design satisfies O(1) field access.
-Each field has a pointer to it in the slot directory allowing for O(1) access
+To access a field, you can use the record attribute to retrieve the field in O(1) time.
 
 ### 3. Page Format
 - Show your page format design.
@@ -32,9 +34,9 @@ Each field has a pointer to it in the slot directory allowing for O(1) access
 
 - Explain your slot directory design if applicable.
 
-Records are tracked using a slot directory (SD) that starts from the end of a page.
+Records are tracked using a slot directory (SD) that starts at the beginning of the page.
 Each SD contains the total free size in page (F), number of records (N), and SD entries that hold a offset and length of record.
-Records are then inserted into the page to the first empty location.
+Records are then inserted into the page to end of the page which is calculated based on the SD.
 
 
 ### 4. Page Management
