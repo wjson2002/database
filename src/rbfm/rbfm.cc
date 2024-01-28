@@ -54,7 +54,6 @@ namespace PeterDB {
         memcpy(buffer + sizeof(short), &numOfRecords, sizeof(char));
 
 
-
         fileHandle.writePage(pageNum, buffer);
         free(buffer);
         char* temp[PAGE_SIZE];
@@ -80,7 +79,7 @@ namespace PeterDB {
             initSlotDirectory(fileHandle, 0);
         }
         //Check last page (newly appended page) first
-        int numOfPages = fileHandle.numOfPages - 1;
+        int numOfPages = fileHandle.numOfPages;
         for(int i = 0;i < numOfPages;i++){
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
@@ -94,6 +93,8 @@ namespace PeterDB {
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 fileHandle.writePage(rid.pageNum, buffer);
+                printf("insert at {%d},{%d}", rid.pageNum, rid.slotNum);
+
                 return 0;
             }
         }
@@ -108,22 +109,6 @@ namespace PeterDB {
         return 0;
 
     }
-
-    char* RecordBasedFileManager::getSlotDirectoryPointer(void* page){
-        char* pointer = (char*)(page) + PAGE_SIZE;
-        return pointer;
-    }
-
-    short RecordBasedFileManager::getSlotSize(char* slotPointer){
-        char* freeSpacePointer = slotPointer - sizeof(short);
-        return *(short*)freeSpacePointer;
-    }
-    char RecordBasedFileManager::getSlotElementSize(char* slotPointer){
-        char* numOfRecordsPointer = slotPointer - sizeof(short)  - sizeof(char);
-        return *numOfRecordsPointer;
-    }
-
-
 
     unsigned short RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid,
                                                            int length, char (&buffer)[PAGE_SIZE], int &offsetPointer) {
@@ -146,7 +131,6 @@ namespace PeterDB {
         }
         else
         {
-
             memcpy(buffer, &newSize, sizeof(short));
             buffer[2] = updatedNumOfRecords;
 
@@ -208,14 +192,18 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                           const RID &rid, void *data) {
-        //printf("Start readRecord\n");
+
         char readBuffer[PAGE_SIZE];
         fileHandle.readPage(rid.pageNum,readBuffer);
 
         int length;
-        memcpy(&length,
+        memmove(&length,
                readBuffer + 2 + (sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
 
+        if(length <= 0){
+            printf("Record doesn't exist");
+            return -1;
+        }
         int totalOffset = 0;
 
         memcpy(&totalOffset,
@@ -298,7 +286,7 @@ namespace PeterDB {
         char* dataPointer = (char*)data;
 
         char nullIndicators[numOfNullBytes];
-       // printf("Num of num bytes %d \n", numOfNullBytes);
+
         for (int i = 0; i < numOfNullBytes; i++) {
             nullIndicators[i] = *dataPointer;
             dataPointer++;
@@ -354,8 +342,47 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const RID &rid) {
+        printf("Deleting {%d},{%d}",rid.pageNum, rid.slotNum);
+        char buffer[PAGE_SIZE];
+        unsigned pageNumber = rid.pageNum;
+        unsigned slotNumber = rid.slotNum;
 
-        return -1;
+        fileHandle.readPage(pageNumber, buffer);
+
+        //Get file information
+        int currentFileSize = 0;
+        int numberOfRecords = 0;
+        memcpy(&currentFileSize,buffer, sizeof(short));
+        memcpy(&numberOfRecords,buffer + 2,sizeof(char));
+
+        //Get record information
+        unsigned offset = 0;
+        unsigned length = 0;
+        memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8,sizeof(int));
+        memcpy(&length,buffer + 2  + sizeof(int) + (slotNumber) * 8, sizeof(int));
+
+        //Erase record, set al bytes to 0 (not necessary)
+        memset(buffer + offset, 0, length);
+
+        int newFileSize = currentFileSize + length;
+        int updatedNumberOfRecords = numberOfRecords - 1;
+
+        //Update slot directory
+        memmove(buffer, &newFileSize, sizeof(short));
+        memmove(buffer + 2, &updatedNumberOfRecords, sizeof(char));
+        memset(buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
+        memset(buffer + 2 + sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
+
+
+        //Shift slot directory (NOT IMPLEMENTED)
+        memmove(buffer + SLOTSIZE + offset,
+                buffer + SLOTSIZE + offset + length,
+                PAGE_SIZE - SLOTSIZE - offset - length);
+
+        //Write to page with deleted record
+        fileHandle.writePage(pageNumber, buffer);
+
+        return 0;
     }
 
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,

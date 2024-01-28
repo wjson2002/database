@@ -268,7 +268,7 @@ namespace PeterDBTesting {
                                     << "Inserting a record should succeed.";
         // save the returned RID
         PeterDB::RID rid0 = rid;
-
+        printf("Retrned {%d},{%d}",rid0.pageNum, rid0.slotNum);
         free(nullsIndicator);
         nullsIndicator = initializeNullFieldsIndicator(recordDescriptor);
 

@@ -84,17 +84,20 @@ namespace PeterDB {
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a record-based file
 
         RC closeFile(FileHandle &fileHandle);                               // Close a record-based file
-        void initSlotDirectory(FileHandle &fileHandle, PageNum pageNum);
-        unsigned short addRecordToSlotDirectory(FileHandle &fileHandle,
+
+        void initSlotDirectory(FileHandle &fileHandle, PageNum pageNum);    // Initialize slot directory when new page is added
+
+        unsigned short addRecordToSlotDirectory(FileHandle &fileHandle,     // Add record (offset, length) into slot directory
                                                 RID &rid,
                                                 int length,char (&buffer)[PAGE_SIZE],
                                                 int &offsetPointer);
-        char* getSlotDirectoryPointer(void* page);
-        short getSlotSize(char* slotPointer);
-        char getSlotElementSize(char* slotPointer);
-        void readSlotDirectory(void* page);
-        int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
-        std::vector<int> serialize(char* bytes, int size);
+
+        void readSlotDirectory(void* page);                                 // function to test slot directory
+
+        int getRecordSize( const std::vector<Attribute> &recordDescriptor,  // Compressed size of record
+                           const void *data);
+
+        std::vector<int> serialize(char* bytes, int size);                  // Given a byte array, convert to bits array and return
 
         //  Format of the data passed into the function is the following:
         //  [n byte-null-indicators for y fields] [actual value for the first field] [actual value for the second field] ...
