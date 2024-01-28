@@ -5,7 +5,7 @@
 
 
 namespace PeterDB {
-    int SLOTSIZE = 200;
+    int SLOTSIZE = 203;
     int MAX_ITEMS_IN_SLOT = (SLOTSIZE - 3) / 8;
     RecordBasedFileManager &RecordBasedFileManager::instance() {
         static RecordBasedFileManager _rbf_manager = RecordBasedFileManager();
@@ -53,12 +53,8 @@ namespace PeterDB {
         memcpy(buffer, &freeSpace, sizeof(short));
         memcpy(buffer + sizeof(short), &numOfRecords, sizeof(char));
 
-//        for(int i = 3;i < slotSize; i++){
-//            buffer[i] = 0;
-//            buffer[i - 1] = 0;
-//        }
 
-        //printf("init page %d, sd %d\n", pageNum, freeSpace);
+
         fileHandle.writePage(pageNum, buffer);
         free(buffer);
         char* temp[PAGE_SIZE];
@@ -68,7 +64,6 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
-//        printf("Start insertRecord\n");
 
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
@@ -86,7 +81,7 @@ namespace PeterDB {
         }
         //Check last page (newly appended page) first
         int numOfPages = fileHandle.numOfPages - 1;
-        for(int i = numOfPages;i >= 0;i--){
+        for(int i = 0;i < numOfPages;i++){
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
             short freeSpace;
@@ -134,13 +129,13 @@ namespace PeterDB {
         memcpy(&freeSize, buffer, sizeof(short));
         char numOfRecords;
         memcpy(&(numOfRecords), buffer + 2, sizeof(char));
-       // printf("freesize: {%d}: \n",freeSize);
+
         unsigned numOfPages = fileHandle.numOfPages;
         ushort slotNum = numOfRecords;
         char updatedNumOfRecords = (char)((int)numOfRecords + 1);
         short newSize = freeSize - (short)length;
         if(numOfRecords == 0){
-           // printf("freesize: {%d} no records default update {%d}, {%d}: \n",freeSize ,updatedNumOfRecords, newSize);
+
             buffer[2] = updatedNumOfRecords;
             memcpy(buffer, &newSize, sizeof(short));
             memcpy(buffer + 2 + sizeof(int), &length, sizeof(int));
@@ -149,29 +144,35 @@ namespace PeterDB {
         }
         else
         {
-           // printf("regular update {%d}, {%d}: \n", updatedNumOfRecords, newSize);
+
             memcpy(buffer, &newSize, sizeof(short));
             buffer[2] = updatedNumOfRecords;
 
             int totalLength = 0;
             int defaultlen = SLOTSIZE;
+
+            //find first open slot where length of record is 0
+            for(int i = 0;i < numOfRecords; i++) {
+                int l = -1;
+                memcpy(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
+                if(l == 0){
+                    slotNum = i;
+                    break;
+                }
+            }
+
+            //Find total length of elements to create offset for inserted record
             for(int i = 0;i < numOfRecords; i++) {
                 int l;
                 memcpy(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
                 totalLength += l;
             }
-           // printf("adding pagenum:%d, slotnum:%d\n", rid.pageNum, slotNum);
+
             //update offset
             offsetPointer=totalLength + SLOTSIZE;
             int total = totalLength + defaultlen;
             memcpy(buffer + 2 + 2 * sizeof(int) + (slotNum) * 8, &total, sizeof(int));
-           // printf("done updating slot directory: total{%d}, len{%d}\n", total, length);
-//            // Update the length of element in the buffer
             memcpy(buffer + 2  + sizeof(int) + (slotNum) * 8, &length, sizeof(int));
-           // printf("done updating slot directory: total len{%d}, len{%d}\n", totalLength, length);
-
-           // printf("SetOFFSET POINTER TO %d", (int)offsetPointer);
-
         }
         return slotNum;
     }
