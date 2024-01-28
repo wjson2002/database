@@ -90,12 +90,14 @@ namespace PeterDB {
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
             short freeSpace;
-            memcpy(&freeSpace, buffer, sizeof(short));
+            std::memmove(&freeSpace, buffer, sizeof(short));
 
             if(freeSpace >= recordSize){
                 rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                        recordSize, buffer, offsetPointer);
-                std::memcpy(buffer+offsetPointer, data, recordSize);
+
+                std::memmove(buffer+offsetPointer, data, recordSize);
+                std::memmove(buffer+offsetPointer, data, recordSize);
                 fileHandle.writePage(rid.pageNum, buffer);
                 return 0;
             }
@@ -106,7 +108,7 @@ namespace PeterDB {
         initSlotDirectory(fileHandle, rid.pageNum);
         fileHandle.readPage(rid.pageNum, buffer);
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid, recordSize, buffer, offsetPointer);
-        std::memcpy(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
+        std::memmove(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
         return 0;
 
@@ -221,12 +223,6 @@ namespace PeterDB {
         memcpy(data, readBuffer+totalOffset, length);
 
         return 0;
-    }
-
-    RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
-                                            const RID &rid) {
-
-        return -1;
     }
 
     std::vector<int> RecordBasedFileManager::serialize(char* bytes, int size){
@@ -355,10 +351,17 @@ namespace PeterDB {
         return 0;
     }
 
+    RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
+                                            const RID &rid) {
+
+        return -1;
+    }
+
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, const RID &rid) {
         return -1;
     }
+
 
     RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                              const RID &rid, const std::string &attributeName, void *data) {
