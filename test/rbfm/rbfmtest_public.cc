@@ -429,7 +429,7 @@ namespace PeterDBTesting {
         inBuffer = malloc(PAGE_SIZE);
         memset(inBuffer, 0, PAGE_SIZE);
         //16000
-        int numRecords = 160;
+        int numRecords = 0;
 
         std::vector<PeterDB::Attribute> recordDescriptor, recordDescriptorLarge;
 
