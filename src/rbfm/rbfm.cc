@@ -6,7 +6,8 @@
 
 namespace PeterDB {
     int SLOTSIZE = 203;
-    int MAX_ITEMS_IN_SLOT = (SLOTSIZE - 3) / 8;
+    int MAX_SLOTS = (SLOTSIZE - 3) / 8;
+    int MIN_RECORD_SIZE = 6;
     RecordBasedFileManager &RecordBasedFileManager::instance() {
         static RecordBasedFileManager _rbf_manager = RecordBasedFileManager();
         return _rbf_manager;
@@ -53,8 +54,12 @@ namespace PeterDB {
         memcpy(buffer, &freeSpace, sizeof(short));
         memcpy(buffer + sizeof(short), &numOfRecords, sizeof(char));
 
+//        for(int i = 3;i < slotSize; i++){
+//            buffer[i] = 0;
+//            buffer[i - 1] = 0;
+//        }
 
-
+        //printf("init page %d, sd %d\n", pageNum, freeSpace);
         fileHandle.writePage(pageNum, buffer);
         free(buffer);
         char* temp[PAGE_SIZE];
@@ -64,6 +69,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
+//        printf("Start insertRecord\n");
 
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
@@ -74,17 +80,41 @@ namespace PeterDB {
             printf("WARNING RECORD OVERSIZED CANNOT FIT IN PAGE\n");
             return -1;
         }
-
+        //Minimum record size is 6 bytes
+        if(recordSize < 6){
+            recordSize = 6;
+        }
+        //Add new page if no pages.
         if(totalNumOfPages == 0) {
             fileHandle.appendPage(data);
             initSlotDirectory(fileHandle, 0);
         }
+
         //Check last page (newly appended page) first
-        int numOfPages = fileHandle.numOfPages - 1;
+        int lastPage = fileHandle.numOfPages - 1;
+        rid.pageNum = lastPage;
+
+        fileHandle.readPage(lastPage, buffer);
+        short freeSpace;
+        std::memmove(&freeSpace, buffer, sizeof(short));
+
+        if(freeSpace >= recordSize){
+            rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
+                                                   recordSize, buffer, offsetPointer);
+
+            std::memmove(buffer+offsetPointer, data, recordSize);
+            std::memmove(buffer+offsetPointer, data, recordSize);
+            fileHandle.writePage(rid.pageNum, buffer);
+            printf("insert at {%d},{%d}, len:{%d}", rid.pageNum, rid.slotNum, recordSize);
+
+            return 0;
+        }
+
+        //check all other pages
+        int numOfPages = fileHandle.numOfPages;
         for(int i = 0;i < numOfPages;i++){
             rid.pageNum = i;
             fileHandle.readPage(rid.pageNum, buffer);
-            short freeSpace;
             std::memmove(&freeSpace, buffer, sizeof(short));
 
             if(freeSpace >= recordSize){
@@ -94,10 +124,12 @@ namespace PeterDB {
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 fileHandle.writePage(rid.pageNum, buffer);
+                printf("insert at {%d},{%d}, len(%d)", rid.pageNum, rid.slotNum, recordSize);
+
                 return 0;
             }
         }
-        //No free space avail: ADDING NEW PAGE
+        //No free space avaliable: Add a new page.
         fileHandle.appendPage(data);
         rid.pageNum = fileHandle.numOfPages - 1;
         initSlotDirectory(fileHandle, rid.pageNum);
@@ -109,24 +141,8 @@ namespace PeterDB {
 
     }
 
-    char* RecordBasedFileManager::getSlotDirectoryPointer(void* page){
-        char* pointer = (char*)(page) + PAGE_SIZE;
-        return pointer;
-    }
-
-    short RecordBasedFileManager::getSlotSize(char* slotPointer){
-        char* freeSpacePointer = slotPointer - sizeof(short);
-        return *(short*)freeSpacePointer;
-    }
-    char RecordBasedFileManager::getSlotElementSize(char* slotPointer){
-        char* numOfRecordsPointer = slotPointer - sizeof(short)  - sizeof(char);
-        return *numOfRecordsPointer;
-    }
-
-
-
     unsigned short RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid,
-                                                           int length, char (&buffer)[PAGE_SIZE], int &offsetPointer) {
+                                                                    int length, char (&buffer)[PAGE_SIZE], int &offsetPointer) {
         short freeSize;
         memcpy(&freeSize, buffer, sizeof(short));
         char numOfRecords;
@@ -146,7 +162,6 @@ namespace PeterDB {
         }
         else
         {
-
             memcpy(buffer, &newSize, sizeof(short));
             buffer[2] = updatedNumOfRecords;
 
@@ -167,6 +182,10 @@ namespace PeterDB {
             for(int i = 0;i < numOfRecords; i++) {
                 int l;
                 memcpy(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
+                if(l < 0){
+                    printf("TOMBSTONE RECORD DETECTED");
+                    l = MIN_RECORD_SIZE;
+                }
                 totalLength += l;
             }
 
@@ -208,18 +227,32 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                           const RID &rid, void *data) {
-        //printf("Start readRecord\n");
+
+        printf("READING %d,%d\n", rid.pageNum, rid.slotNum);
         char readBuffer[PAGE_SIZE];
         fileHandle.readPage(rid.pageNum,readBuffer);
-
+        int totalOffset = 0;
         int length;
         memcpy(&length,
                readBuffer + 2 + (sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
-
-        int totalOffset = 0;
-
         memcpy(&totalOffset,
                readBuffer + 2 + (2 * sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
+        printf("Record is at offset %d, %d\n", totalOffset, length);
+        if(length == 0){
+            printf("Record does not exist\n");
+            return -1;
+        }
+
+        //Read tombstone record
+        if(length == -1){
+            printf("Record is in tombstone\n");
+            RID newRID;
+            memcpy(&newRID.pageNum,
+                   readBuffer + totalOffset, 3);
+            memcpy(&newRID.slotNum,
+                   readBuffer + totalOffset + 3 , 3);
+            readRecord(fileHandle, recordDescriptor, newRID, data);
+        }
 
         memcpy(data, readBuffer+totalOffset, length);
 
@@ -298,7 +331,7 @@ namespace PeterDB {
         char* dataPointer = (char*)data;
 
         char nullIndicators[numOfNullBytes];
-       // printf("Num of num bytes %d \n", numOfNullBytes);
+
         for (int i = 0; i < numOfNullBytes; i++) {
             nullIndicators[i] = *dataPointer;
             dataPointer++;
@@ -354,26 +387,266 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const RID &rid) {
+        printf("Deleting {%d},{%d}",rid.pageNum, rid.slotNum);
+        bool isTombstone = false;
+        char buffer[PAGE_SIZE];
+        unsigned pageNumber = rid.pageNum;
+        unsigned slotNumber = rid.slotNum;
 
-        return -1;
+        fileHandle.readPage(pageNumber, buffer);
+
+        //Get file information
+        int currentFileSize = 0;
+        int numberOfRecords = 0;
+        memcpy(&currentFileSize,buffer, sizeof(short));
+        memcpy(&numberOfRecords,buffer + 2,sizeof(char));
+
+        //Get record information
+        unsigned offset = 0;
+        int length = 0;
+        memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8,sizeof(int));
+        memcpy(&length,buffer + 2  + sizeof(int) + (slotNumber) * 8, sizeof(int));
+
+
+        if(length == -1){
+            length = MIN_RECORD_SIZE;
+            isTombstone = true;
+        }
+
+        //Erase record, set all bytes to 0 (not necessary)
+        memset(buffer + offset, -1, length);
+
+        int newFileSize = currentFileSize + length;
+        int updatedNumberOfRecords = numberOfRecords - 1;
+
+        //Update slot directory
+        memmove(buffer, &newFileSize, sizeof(short));
+        memmove(buffer + 2, &updatedNumberOfRecords, sizeof(char));
+        memset(buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
+        memset(buffer + 2 + sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
+
+
+        //Shift slot directory
+        printf("SHIFTING dest %d,src %d,len %d\n",offset,offset +length,PAGE_SIZE - offset - length);
+        memmove(buffer + offset,
+                buffer + offset + length,
+                PAGE_SIZE - offset - length);
+
+        //update offsets for shifted slots
+        for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+            int tempLen = 0;
+            memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
+            memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
+
+            if(tempLen != 0 && tempLen <= currentFileSize){
+                unsigned newOffset = offset - length;
+                memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                printf("Moving dest %d to src %d\n",offset,offset-length);
+            }
+        }
+
+        //Write to page with deleted record
+        fileHandle.writePage(pageNumber, buffer);
+
+        return 0;
     }
 
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, const RID &rid) {
-        return -1;
+        printf("Updating {%d},{%d}\n",rid.pageNum, rid.slotNum);
+        char buffer[PAGE_SIZE];
+        unsigned pageNumber = rid.pageNum;
+        unsigned slotNumber = rid.slotNum;
+
+        fileHandle.readPage(pageNumber, buffer);
+
+        //Get file information
+        int currentFreeSpace = 0;
+        int numberOfRecords = 0;
+        memcpy(&currentFreeSpace,buffer, sizeof(short));
+        memcpy(&numberOfRecords,buffer + 2,sizeof(char));
+
+        //Get old record information
+        unsigned offset;
+        unsigned length;
+        memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8,sizeof(int));
+        memcpy(&length,buffer + 2  + sizeof(int) + (slotNumber) * 8, sizeof(int));
+
+        //Updated record information
+        int updatedRecordSize = getRecordSize(recordDescriptor, data);
+        printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
+        //Scenario 1: Updated Record Size = Old Record Size
+        if(length == updatedRecordSize){
+            printf("Updating scenario 1\n");
+            memcpy(buffer+offset, data, updatedRecordSize);
+            fileHandle.writePage(rid.pageNum, buffer);
+        }
+            //Scenario 2: Updated Record Size < Old Record Size
+        else if(updatedRecordSize < length){
+            printf("Updating scenario 2\n");
+            memcpy(buffer+SLOTSIZE+offset, data, updatedRecordSize);
+            //shift slot directory
+            memmove(buffer + SLOTSIZE + offset + updatedRecordSize,
+                    buffer + SLOTSIZE + offset + length,
+                    PAGE_SIZE - SLOTSIZE - offset - length);
+            //update free space
+            int newFreeSpace = currentFreeSpace + length - updatedRecordSize;
+            memcpy(buffer, &newFreeSpace, sizeof(short));
+            fileHandle.writePage(rid.pageNum, buffer);
+        }
+            //Scenario 3: Updated Record Size > Old Record Size
+        else if(updatedRecordSize > length){
+            int growSize = updatedRecordSize - length;
+            //Scenario 3.1: no free space left on page
+            if(growSize > currentFreeSpace){
+                printf("Updating scenario 3.1\n");
+                char* temp = new char[length];
+                memcpy(temp, buffer+offset, length);
+                RID newRID;
+                insertRecord(fileHandle, recordDescriptor, data, newRID);
+
+                //Convert record to tombstone
+                memcpy(buffer + offset, &newRID.pageNum, 3);
+                memcpy(buffer + offset + 3, &newRID.slotNum, 3);
+
+                //Update slot directory length to -1 to indicate tombstone record
+                int tombstone = -1;
+                memcpy(buffer + 2  + sizeof(int) + (slotNumber) * 8,&tombstone, sizeof(int));
+
+                fileHandle.writePage(rid.pageNum, buffer);
+                free(temp);
+                return 0;
+            }
+                //Scenario 3.2: shift all slots to add space to updated slot
+            else{
+
+                int dest = updatedRecordSize;
+                int src = offset;
+                int size = PAGE_SIZE - offset - length;
+                printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, size);
+                //Shift Slot Directory to make space
+                memmove(buffer + offset + updatedRecordSize,
+                        buffer  + offset + length,
+                        PAGE_SIZE - offset - updatedRecordSize);
+                //update offsets
+                for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+                    int tempOff = 0;
+                    int tempLen = 0;
+                    memmove(&tempOff, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
+                    memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
+
+                    if(tempLen != 0 && tempLen <= currentFreeSpace){
+                        unsigned newOffset = tempOff + growSize;
+                        memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                    }
+                }
+
+                // copy data to buffer
+                memcpy(buffer  + offset, data, updatedRecordSize);
+
+                //Update size of slot directory
+                int newFreeSpace = currentFreeSpace - growSize;
+                memcpy(buffer, &newFreeSpace, sizeof(short));
+
+                //Update slot directory
+                memcpy(buffer + 2 + (rid.slotNum * 8) + sizeof(int) , &updatedRecordSize, sizeof(short));
+
+                fileHandle.writePage(rid.pageNum, buffer);
+
+                return 0;
+            }
+        }
+
+        return 0;
+
     }
 
 
     RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                              const RID &rid, const std::string &attributeName, void *data) {
-        return -1;
+
+        printf("read attri{%d},{%d}\n",rid.pageNum, rid.slotNum);
+        char buffer[PAGE_SIZE];
+
+        unsigned pageNumber = rid.pageNum;
+        unsigned slotNumber = rid.slotNum;
+
+        fileHandle.readPage(pageNumber, buffer);
+
+        //Get record
+        int offset = -1;
+        int length;
+        memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, sizeof(int));
+        memcpy(&length, buffer + 2 + sizeof(int) + (slotNumber) * 8, sizeof(int));
+
+        void* temp;
+        memcpy(&temp, buffer + offset, length);
+        int numOfNullBytes = ceil((double)recordDescriptor.size()/8);
+        char* dataPointer = (char*)temp;
+
+        char nullIndicators[numOfNullBytes];
+
+        for (int i = 0; i < numOfNullBytes; i++) {
+            nullIndicators[i] = *dataPointer;
+            dataPointer++;
+        }
+
+        std::vector<int> bitArray = serialize(nullIndicators, numOfNullBytes);
+        int index = 0;
+        for (const Attribute& attribute : recordDescriptor){
+            if(attribute.name == attributeName){
+                if(bitArray[index] == 1){
+                    index ++;
+                    return 0;
+                }
+                switch (attribute.type) {
+                    case TypeInt:
+                        memcpy(data, dataPointer, sizeof(int));
+                        break;
+                    case TypeReal:
+                        memcpy(data, dataPointer, sizeof(int));
+                        break;
+                    case TypeVarChar:
+                        int *length = (int *) dataPointer;
+                        dataPointer += 4;
+                        memcpy(data, dataPointer, *length);
+                        for (int i = 0; i < *length; i++) {
+                            dataPointer++;
+                        }
+                        break;
+                }
+                return 0;
+            }
+            if(bitArray[index] == 1){
+                index ++;
+                continue;
+            }
+            switch (attribute.type) {
+                case TypeInt:
+                    dataPointer +=4;
+                    break;
+                case TypeReal:
+                    dataPointer +=4;
+                    break;
+                case TypeVarChar:
+                    int* length= (int*)dataPointer;
+                    dataPointer += 4;
+                    for(int i = 0; i < *length; i++){
+                        dataPointer++;
+                    }
+                    break;
+            }
+            index ++;
+        }
+
+        return 0;
     }
 
     RC RecordBasedFileManager::scan(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                     const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
-        return -1;
+        return 0;
     }
 
 } // namespace PeterDB
