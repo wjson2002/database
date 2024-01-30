@@ -54,7 +54,12 @@ namespace PeterDB {
         memcpy(buffer, &freeSpace, sizeof(short));
         memcpy(buffer + sizeof(short), &numOfRecords, sizeof(char));
 
+//        for(int i = 3;i < slotSize; i++){
+//            buffer[i] = 0;
+//            buffer[i - 1] = 0;
+//        }
 
+        //printf("init page %d, sd %d\n", pageNum, freeSpace);
         fileHandle.writePage(pageNum, buffer);
         free(buffer);
         char* temp[PAGE_SIZE];
@@ -64,6 +69,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
+//        printf("Start insertRecord\n");
 
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
@@ -644,3 +650,4 @@ namespace PeterDB {
     }
 
 } // namespace PeterDB
+
