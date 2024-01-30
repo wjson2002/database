@@ -1,8 +1,12 @@
 #include "src/include/rm.h"
 
 namespace PeterDB {
+    std::string DEFAULT_TABLES_NAME = "Tables";
+    std::string DEFAULT_ATTRIBUTE_NAME = "Attributes";
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
+        bool CatalogActive = false;
+
         return _relation_manager;
     }
 
@@ -15,19 +19,50 @@ namespace PeterDB {
     RelationManager &RelationManager::operator=(const RelationManager &) = default;
 
     RC RelationManager::createCatalog() {
-        return -1;
+        //Create File for tables & attributes
+        this->CatalogActive = true;
+        int createTables = RecordBasedFileManager::instance().createFile(DEFAULT_TABLES_NAME);
+        if(createTables != 0){
+            return -1;
+        }
+
+        int createAttributes = RecordBasedFileManager::instance().createFile(DEFAULT_ATTRIBUTE_NAME);
+        if(createAttributes != 0){
+            return -1;
+        }
+
+        return 0;
     }
 
     RC RelationManager::deleteCatalog() {
-        return -1;
+        this->CatalogActive = false;
+        int deleteTables = RecordBasedFileManager::instance().destroyFile(DEFAULT_TABLES_NAME);
+        int deleteAttributes = RecordBasedFileManager::instance().destroyFile(DEFAULT_ATTRIBUTE_NAME);
+
+        return 0;
     }
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
-        return -1;
+        if(!this->CatalogActive){
+            printf("Catalog not active\n");
+            return -1;
+        }
+
+        int createRBFM = RecordBasedFileManager::instance().createFile(tableName);
+        if(createRBFM != 0){
+            return -1;
+        }
+
+        return 0;
     }
 
     RC RelationManager::deleteTable(const std::string &tableName) {
-        return -1;
+        int deleteRBFMfile = RecordBasedFileManager::instance().destroyFile(tableName);
+        if(deleteRBFMfile != 0){
+            return -1;
+        }
+
+        return 0;
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {

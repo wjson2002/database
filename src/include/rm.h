@@ -90,6 +90,9 @@ namespace PeterDB {
                      bool highKeyInclusive,
                      RM_IndexScanIterator &rm_IndexScanIterator);
 
+
+    private:
+        bool CatalogActive = false;
     protected:
         RelationManager();                                                  // Prevent construction
         ~RelationManager();                                                 // Prevent unwanted destruction
