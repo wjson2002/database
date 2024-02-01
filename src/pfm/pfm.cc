@@ -88,9 +88,6 @@ namespace PeterDB {
         if(write<=0){
             perror("init hidden page write failed");
         }
-        else{
-            printf("init hidden wrote %zu bytes\n", write);
-        }
     }
 
     FileHandle::FileHandle() {
@@ -190,15 +187,15 @@ namespace PeterDB {
 
         fseek(myFile,0,SEEK_SET);
         fread(&numOfPages, sizeof(unsigned), 1, myFile);
-        printf("Number of Pages Loaded: {%d}\n", numOfPages);
+        printf("Page Count:{%d} ", numOfPages);
 
         fread(&readPageCounter, sizeof(unsigned), 1, myFile);
-        printf("Read Count Loaded: {%d}\n", readPageCounter);
+        printf("Read Count:{%d} ", readPageCounter);
 
         fread(&writePageCounter, sizeof(unsigned), 1, myFile);
-        printf("Write Count Loaded: {%d}\n", writePageCounter);
+        printf("Write Count: {%d} ", writePageCounter);
 
-        printf("Loading File Finished...\n");
+        printf("....Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
         fseek(myFile,0,SEEK_SET);

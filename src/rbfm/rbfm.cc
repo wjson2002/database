@@ -69,7 +69,8 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
-//        printf("Start insertRecord\n");
+        printf("Start insertRecord:");
+        printRecord(recordDescriptor, data, std::cout);
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
         int totalNumOfPages = fileHandle.numOfPages;
@@ -260,9 +261,11 @@ namespace PeterDB {
 
         }else{
             memcpy(data, readBuffer+totalOffset, length);
+            printRecord(recordDescriptor, data, std::cout);
             free(readBuffer);
             return 0;
         }
+
     }
 
     std::vector<int> RecordBasedFileManager::serialize(char* bytes, int size){
@@ -612,14 +615,17 @@ namespace PeterDB {
         unsigned slotNumber = rid.slotNum;
 
         fileHandle.readPage(pageNumber, buffer);
-
+        int size = 0;
+        for(auto attr : recordDescriptor){
+            size += attr.length;
+        }
         //Get record
         int offset = -1;
         int length;
         memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, sizeof(int));
         memcpy(&length, buffer + 2 + sizeof(int) + (slotNumber) * 8, sizeof(int));
 
-        void* temp;
+        void* temp[size];
         memcpy(&temp, buffer + offset, length);
         int numOfNullBytes = ceil((double)recordDescriptor.size()/8);
         char* dataPointer = (char*)temp;
@@ -686,6 +692,50 @@ namespace PeterDB {
                                     const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
+        int numOfPages = fileHandle.numOfPages;
+        int size = 0;
+        AttrType type;
+        for(auto attr : recordDescriptor){
+            size += attr.length;
+            if(attr.name == conditionAttribute){
+                type = attr.type;
+            }
+        }
+        for(int i = 0;i < numOfPages;i++){
+            RID tempRID;
+            tempRID.pageNum = i;
+            for(int j = 0;j < MAX_SLOTS;j++){
+                void* data[size];
+                tempRID.slotNum = j;
+                int read = readRecord(fileHandle, recordDescriptor, tempRID, &data);
+                if(read == 0) {
+                    void *d[size];
+                    readAttribute(fileHandle, recordDescriptor, tempRID, conditionAttribute, d);
+                    printf("ATTR READ:{%d}\n", *(int *) d);
+                    switch (type) {
+                        case TypeInt:
+                            if (*(int *) value == *(int *) d) {
+                                rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                            }
+                            break;
+                        case TypeReal:
+                            if (*(float *) value == *(float *) d) {
+                                rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                            }
+                            break;
+                        case TypeVarChar:
+                            if (*(char *) value == *(char *) d) {
+                                rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+        for(auto RID : rbfm_ScanIterator.recordRIDS){
+            printf("ROD:{%d}{%d}\n", RID.pageNum,RID.slotNum);
+        }
+
         return 0;
     }
 

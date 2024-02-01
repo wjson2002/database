@@ -65,6 +65,8 @@ namespace PeterDB {
         RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
 
         RC close() { return -1; };
+
+        std::vector<RID> recordRIDS;
     };
 
     class RecordBasedFileManager {
