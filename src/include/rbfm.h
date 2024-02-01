@@ -25,10 +25,6 @@ namespace PeterDB {
         AttrLength length; // attribute length
     } Attribute;
 
-    typedef struct SlotEntry{
-        char offset;
-        char length;
-    } SlotEntry;
 
     // Comparison Operator (NOT needed for part 1 of the project)
     typedef enum {
@@ -89,9 +85,7 @@ namespace PeterDB {
                                                 RID &rid,
                                                 int length,char (&buffer)[PAGE_SIZE],
                                                 int &offsetPointer);
-        char* getSlotDirectoryPointer(void* page);
-        short getSlotSize(char* slotPointer);
-        char getSlotElementSize(char* slotPointer);
+
         void readSlotDirectory(void* page);
         int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
         std::vector<int> serialize(char* bytes, int size);

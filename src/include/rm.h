@@ -92,7 +92,12 @@ namespace PeterDB {
 
 
     private:
+        void* convert(std::vector<Attribute>& recordDescriptor, const std::string data[]);
         bool CatalogActive = false;
+        FileHandle tableFileHandle;
+        FileHandle attributeFileHandle;
+        FileHandle currentFileHandle;
+
     protected:
         RelationManager();                                                  // Prevent construction
         ~RelationManager();                                                 // Prevent unwanted destruction

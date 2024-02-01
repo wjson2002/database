@@ -1,12 +1,27 @@
 #include "src/include/rm.h"
+#include <map>
+#include <cmath>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <iostream>
 
 namespace PeterDB {
     std::string DEFAULT_TABLES_NAME = "Tables";
+    std::vector<Attribute> tableRecordDescriptor = {{"ID", TypeInt, sizeof(int)},
+                                                    {"Name", TypeVarChar, 50},
+                                                    {"Filename",TypeVarChar, 80}};
     std::string DEFAULT_ATTRIBUTE_NAME = "Attributes";
+    std::vector<Attribute> attributeRecordDescriptor = {{"ID", TypeInt, sizeof(int)},
+                                                    {"Name", TypeVarChar, 50},
+                                                    {"Type",TypeInt, sizeof(int)},
+                                                    {"Position",TypeInt, sizeof(int)}};
+
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
-        bool CatalogActive = false;
 
+        bool CatalogActive = false;
+        FileHandle tableFileHandle;
         return _relation_manager;
     }
 
@@ -20,21 +35,41 @@ namespace PeterDB {
 
     RC RelationManager::createCatalog() {
         //Create File for tables & attributes
+        printf("Creating Catalog\n");
+        if(this->CatalogActive){
+            printf("Catalog already created\n");
+            return -1;
+        }
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+
         this->CatalogActive = true;
-        int createTables = RecordBasedFileManager::instance().createFile(DEFAULT_TABLES_NAME);
+        int createTables = rbfm.createFile(DEFAULT_TABLES_NAME);
         if(createTables != 0){
             return -1;
         }
+        rbfm.openFile(DEFAULT_TABLES_NAME,tableFileHandle);
+        RID rid;
+        std::string data[] = {"0", "Tables", "Table.bin"};
+
+        auto result = convert(tableRecordDescriptor, data);
+        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
+
 
         int createAttributes = RecordBasedFileManager::instance().createFile(DEFAULT_ATTRIBUTE_NAME);
         if(createAttributes != 0){
             return -1;
         }
+        RecordBasedFileManager::instance().openFile(DEFAULT_ATTRIBUTE_NAME,
+                                                    attributeFileHandle);
 
         return 0;
     }
 
     RC RelationManager::deleteCatalog() {
+        if(CatalogActive == false){
+            printf("Catalog not active\n");
+            return -1;
+        }
         this->CatalogActive = false;
         int deleteTables = RecordBasedFileManager::instance().destroyFile(DEFAULT_TABLES_NAME);
         int deleteAttributes = RecordBasedFileManager::instance().destroyFile(DEFAULT_ATTRIBUTE_NAME);
@@ -70,7 +105,15 @@ namespace PeterDB {
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
-        return -1;
+        int openFile = RecordBasedFileManager::instance().openFile(tableName, currentFileHandle);
+        if(openFile != 0){
+            printf("Open file error for insertTuple\n");
+            return -1;
+        }
+        //RecordBasedFileManager::instance().insertRecord(currentFileHandle, )
+
+
+        return 0;
     }
 
     RC RelationManager::deleteTuple(const std::string &tableName, const RID &rid) {
@@ -102,7 +145,65 @@ namespace PeterDB {
                              RM_ScanIterator &rm_ScanIterator) {
         return -1;
     }
+    void* RelationManager::convert(std::vector<Attribute>& recordDescriptor, const std::string data[]) {
+        int numOfNullBytes = ceil((double)recordDescriptor.size() / 8);
+        int totalSize = 0;
+        int index = 0;
 
+        for (const auto& attribute : recordDescriptor) {
+            switch (attribute.type) {
+                case TypeInt:
+                    totalSize += sizeof(int);
+                    break;
+                case TypeReal:
+                    totalSize += sizeof(float);
+                    break;
+                case TypeVarChar:
+                    totalSize += sizeof(int) + data[index].length();
+                    break;
+            }
+            index++;
+        }
+
+        char* result = new char[totalSize];
+        char* resultPointer = result;
+
+        for (int i = 0; i < numOfNullBytes; i++) {
+            memset(resultPointer, 0, 1);
+            resultPointer++;
+        }
+
+        index = 0;
+        for (const auto& attribute : recordDescriptor) {
+            switch (attribute.type) {
+                case TypeInt: {
+                    int converted = stoi(data[index]);
+                    memcpy(resultPointer, &converted, sizeof(int));
+                    resultPointer += sizeof(int);
+                }
+                    break;
+                case TypeReal: {
+                    float converted = stof(data[index]);
+                    memcpy(resultPointer, &converted, sizeof(float));
+                    resultPointer += sizeof(float);
+                }
+                    break;
+                case TypeVarChar: {
+                    int length = (int)(data[index].length());
+                    memcpy(resultPointer, &length, sizeof(int));
+                    resultPointer += sizeof(int);
+
+                    memcpy(resultPointer, data[index].c_str(), length);
+                    resultPointer += length;
+                }
+                    break;
+            }
+            index++;
+        }
+        printf("Test convert: \n");
+        RecordBasedFileManager::instance().printRecord(recordDescriptor, result, std::cout);
+        return result;
+    }
     RM_ScanIterator::RM_ScanIterator() = default;
 
     RM_ScanIterator::~RM_ScanIterator() = default;
