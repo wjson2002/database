@@ -50,21 +50,41 @@ namespace PeterDB {
         std::string data[] = {"0", "Tables", "Table.bin"};
         auto result = convert(tableRecordDescriptor, data);
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
         std::string attributesData[] = {"1", "Attributes", "Attributes.bin"};
         auto attributeBytes = convert(tableRecordDescriptor, attributesData);
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, attributeBytes, rid);
 
-        int createAttributes = RecordBasedFileManager::instance().createFile(DEFAULT_ATTRIBUTE_NAME);
-        if(createAttributes != 0){
-            return -1;
-        }
+
+        //create attribute file
+        RecordBasedFileManager::instance().createFile(DEFAULT_ATTRIBUTE_NAME);
+
         RecordBasedFileManager::instance().openFile(DEFAULT_ATTRIBUTE_NAME,
                                                     attributeFileHandle);
+        std::string tableAttr0[] = {"0", "id", "0", "0"};
+        auto bytes = convert(attributeRecordDescriptor,  tableAttr0);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
 
+        std::string tableAttr1[] = {"0", "name", "2", "1"};
+        bytes = convert(attributeRecordDescriptor,  tableAttr1);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
+
+        std::string tableAttr2[] = {"0", "filename", "2", "2"};
+        bytes = convert(attributeRecordDescriptor,  tableAttr2);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
+
+        std::string AttrAttr0[] = {"1", "table_id", "0", "0"};
+        bytes = convert(attributeRecordDescriptor,   AttrAttr0);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
+
+        std::string AttrAttr1[] = {"1", "name", "0", "1"};
+        bytes = convert(attributeRecordDescriptor,   AttrAttr1);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
+        std::string AttrAttr2[] = {"1", "type", "0", "2"};
+        bytes = convert(attributeRecordDescriptor,   AttrAttr2);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
+        std::string AttrAttr3[] = {"1", "pos", "0", "3"};
+        bytes = convert(attributeRecordDescriptor,   AttrAttr3);
+        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
         return 0;
     }
 
@@ -111,8 +131,16 @@ namespace PeterDB {
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
         rbfm.scan(tableFileHandle, tableRecordDescriptor,
-                  "ID", EQ_OP,value, attributeNames,
+                  "ID", EQ_OP, value, attributeNames,
                   Iterator);
+        std::vector<Attribute> recordDescriptor = getRecordDescriptor(1);
+        for(auto RID : Iterator.recordRIDS){
+            void* temp[100];
+            printf("ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
+            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
+            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
+            printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
+        }
 
         return 0;
     }
@@ -216,6 +244,70 @@ namespace PeterDB {
         }
         return result;
     }
+    Attribute RelationManager::convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data){
+        Attribute result;
+
+        int numOfNullBytes = ceil((double)recordDescriptor.size()/8);
+        char* dataPointer = (char*)data;
+        char nullIndicators[numOfNullBytes];
+        for (int i = 0; i < numOfNullBytes; i++) {
+            nullIndicators[i] = *dataPointer;
+
+            dataPointer++;
+        }
+        std::vector<int> bitArray = RecordBasedFileManager::instance().serialize(nullIndicators,
+                                                                                 numOfNullBytes);
+        dataPointer += sizeof(int); // table id
+
+        int length = *(int*)dataPointer;
+        char name[length + 1];
+        dataPointer += sizeof(int);
+        memcpy(&name, dataPointer, length);
+        name[length] = '\0';
+        dataPointer += length;
+        result.name = std::string(name);
+        printf("ATTR NAME: {%s}\n", result.name.c_str());
+        int type = *(int*)dataPointer;
+        AttrType attrtype;
+        dataPointer += 4;
+        switch (type) {
+            case 0:
+                attrtype = TypeInt;
+                break;
+            case 1:
+                attrtype = TypeReal;
+                break;
+            case 2:
+                attrtype = TypeVarChar;
+                break;
+        }
+        result.type = attrtype;
+        result.length = 30;
+
+        return result;
+    }
+
+
+    std::vector<Attribute> RelationManager::getRecordDescriptor(int table_id){
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        int value = table_id;
+        RBFM_ScanIterator Iterator = RBFM_ScanIterator();
+        std::vector<std::string> attributeNames;
+        rbfm.scan(tableFileHandle, attributeRecordDescriptor,
+                  "ID", EQ_OP, &value, attributeNames,
+                  Iterator);
+        std::vector<Attribute> result;
+        for(auto RID : Iterator.recordRIDS){
+            void* temp[100];
+            printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
+            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
+            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
+            printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
+            result.push_back(tempAttr);
+        }
+        return result;
+    }
+
     RM_ScanIterator::RM_ScanIterator() = default;
 
     RM_ScanIterator::~RM_ScanIterator() = default;

@@ -733,7 +733,8 @@ namespace PeterDB {
             }
         }
         for(auto RID : rbfm_ScanIterator.recordRIDS){
-            printf("ROD:{%d}{%d}\n", RID.pageNum,RID.slotNum);
+            printf("Scanned ROD:{%d}{%d}\n", RID.pageNum,RID.slotNum);
+
         }
 
         return 0;

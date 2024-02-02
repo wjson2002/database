@@ -93,6 +93,8 @@ namespace PeterDB {
 
     private:
         void* convert(std::vector<Attribute>& recordDescriptor, const std::string data[]);
+        Attribute convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data);
+        std::vector<Attribute> getRecordDescriptor(int table_id);
         bool CatalogActive = false;
         FileHandle tableFileHandle;
         FileHandle attributeFileHandle;
