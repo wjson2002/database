@@ -64,20 +64,24 @@ namespace PeterDB {
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
         printf("Creating new Table: {%s}\n", tableName.c_str());
-        if(!this->CatalogActive){
+        if(this->CatalogActive == false){
             printf("Catalog not active\n");
             return -1;
         }
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        int index = tableIDmap.size();
+        int index;
         if(tableName == DEFAULT_TABLES_NAME) {
             index = 0;
-
         }
         else if(tableName == DEFAULT_ATTRIBUTE_NAME){
             index = 1;
         }
         else{
+            int index = tableIDmap.size();
+            if(index < 2){
+                index += 2;
+            }
+
             FileHandle newTableFileHandle;
             rbfm.createFile(tableName);
             rbfm.openFile(tableName,newTableFileHandle);
@@ -124,23 +128,17 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        void* value[100];
-        RBFM_ScanIterator Iterator = RBFM_ScanIterator();
-        std::vector<std::string> attributeNames;
-        //printf("Loojing for {%s}", tableName.c_str());
-        rbfm.scan(tableFileHandle, tableRecordDescriptor,
-                  "Name", EQ_OP, tableName.c_str(), attributeNames,
-                  Iterator);
-
-        RID rid = rbfm.scannedRIDS[0];
-
-        rbfm.readRecord(tableFileHandle, tableRecordDescriptor, rid, &value);
-        char* pointer = (char*)value;
-        int tableID = *(int*)(pointer + 1);
+        if(CatalogActive== false){
+            createCatalog();
+        }
+        auto it = tableNameToIdMap.find(tableName);
+        if(it != tableNameToIdMap.end()){
+            return -1;
+        }
+        int tableID = tableNameToIdMap[tableName];
 
         //Need to get table ID
-        printf("GEtting attribute of tableID: {%d}\n", tableID);
+        printf("Getting attr of name:{%s}: ID{%d}\n", tableName.c_str(), tableID);
         std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
 
         attrs = recordDescriptor;
@@ -386,7 +384,7 @@ namespace PeterDB {
 
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) { return RM_EOF; }
 
-    RC RM_ScanIterator::close() { return -1; }
+    RC RM_ScanIterator::close() { return 0; }
 
     // Extra credit work
     RC RelationManager::dropAttribute(const std::string &tableName, const std::string &attributeName) {
