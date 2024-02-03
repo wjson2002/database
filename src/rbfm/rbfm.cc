@@ -69,8 +69,6 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
-        printf("Start insertRecord:");
-
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
         int totalNumOfPages = fileHandle.numOfPages;

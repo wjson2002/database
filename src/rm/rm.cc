@@ -65,7 +65,6 @@ namespace PeterDB {
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
         printf("Creating new Table: {%s}\n", tableName.c_str());
         if(this->CatalogActive == false){
-            printf("Catalog not active\n");
             return -1;
         }
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
@@ -77,7 +76,7 @@ namespace PeterDB {
             index = 1;
         }
         else{
-            int index = tableIDmap.size();
+            index = tableIDmap.size();
             if(index < 2){
                 index += 2;
             }
@@ -117,7 +116,9 @@ namespace PeterDB {
         }
         if(it != tableNameToIdMap.end()){
             RecordBasedFileManager::instance().destroyFile(tableName);
+            int tableInt = tableNameToIdMap[tableName];
             tableNameToIdMap.erase(tableName);
+            tableIDmap.erase(tableInt);
             return 0;
         }
         else{
@@ -128,13 +129,10 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        if(CatalogActive== false){
+        if(CatalogActive == false){
             createCatalog();
         }
-        auto it = tableNameToIdMap.find(tableName);
-        if(it != tableNameToIdMap.end()){
-            return -1;
-        }
+
         int tableID = tableNameToIdMap[tableName];
 
         //Need to get table ID
@@ -147,6 +145,12 @@ namespace PeterDB {
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        auto it = tableNameToIdMap.find(tableName);
+
+        if(it == tableNameToIdMap.end()){
+            return -1;
+        }
+
         std::vector<std::string> attributeNames;
         void* value[100];
 
