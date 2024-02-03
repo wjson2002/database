@@ -2,12 +2,11 @@
 
 
 ### 1. Basic information
- - Team #:
- - Github Repo Link:
- - Student 1 UCI NetID:
- - Student 1 Name:
- - Student 2 UCI NetID (if applicable):
- - Student 2 Name (if applicable):
+ - Team #: 13
+ - Github Repo Link: https://github.com/wjson2002/cs222-winter24-wjson2002/blob/main/report/project2.md
+ - Student 1 UCI NetID: wujp1
+ - Student 1 Name: Jason Wu
+ 
 
 ### 2. Meta-data
 - Show your meta-data design (Tables and Columns table) and information about each column.

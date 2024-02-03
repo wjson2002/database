@@ -25,10 +25,6 @@ namespace PeterDB {
         AttrLength length; // attribute length
     } Attribute;
 
-    typedef struct SlotEntry{
-        char offset;
-        char length;
-    } SlotEntry;
 
     // Comparison Operator (NOT needed for part 1 of the project)
     typedef enum {
@@ -66,9 +62,14 @@ namespace PeterDB {
         // Never keep the results in the memory. When getNextRecord() is called,
         // a satisfying record needs to be fetched from the file.
         // "data" follows the same format as RecordBasedFileManager::insertRecord().
-        RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
+        RC getNextRecord(RID &rid, void *data);
+        RC scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor);
+        RC close() { return 0;};
+        std::vector<RID>::iterator currentRID = recordRIDS.begin();
+        std::vector<RID> recordRIDS;
+        FileHandle fileHandle = fileHandle;
+        std::vector<Attribute> recordDescriptor = recordDescriptor;
 
-        RC close() { return -1; };
     };
 
     class RecordBasedFileManager {
@@ -89,9 +90,7 @@ namespace PeterDB {
                                                 RID &rid,
                                                 int length,char (&buffer)[PAGE_SIZE],
                                                 int &offsetPointer);
-        char* getSlotDirectoryPointer(void* page);
-        short getSlotSize(char* slotPointer);
-        char getSlotElementSize(char* slotPointer);
+
         void readSlotDirectory(void* page);
         int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
         std::vector<int> serialize(char* bytes, int size);
@@ -152,7 +151,7 @@ namespace PeterDB {
                 const std::vector<std::string> &attributeNames, // a list of projected attributes
                 RBFM_ScanIterator &rbfm_ScanIterator);
 
-
+        std::vector<RID> scannedRIDS;
 
 
     protected:

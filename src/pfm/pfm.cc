@@ -24,10 +24,6 @@ namespace PeterDB {
         printf("Start Creating File");
         struct stat fileInfo{};
 
-        if(stat(fileName.c_str(), &fileInfo) == 0){
-            perror("File already created");
-            return -1;
-        }
         FILE* file;
         file = fopen(fileName.c_str(), "wr+");
         pfmInitFile(file);
@@ -60,14 +56,14 @@ namespace PeterDB {
         unsigned test = -1;
         fseek(file,0,SEEK_SET);
         fread(&test ,sizeof(unsigned), 1, file);
-        printf("OPEN Read flushed values: page{%d}}\n", test);
+        printf("OPEN File with: pages: {%d}}\n", test);
         if(file == nullptr)
         {
             perror("File failed to open");
             return -1;
         }
         else {
-            printf("File Fopened %s \n", fileName.c_str());
+            printf("File Fopened success: %s \n", fileName.c_str());
             return 0;
         }
     }
@@ -87,9 +83,6 @@ namespace PeterDB {
         size_t write = fwrite(defaultPageData, PAGE_SIZE, 1, file);
         if(write<=0){
             perror("init hidden page write failed");
-        }
-        else{
-            printf("init hidden wrote %zu bytes\n", write);
         }
     }
 
@@ -190,15 +183,15 @@ namespace PeterDB {
 
         fseek(myFile,0,SEEK_SET);
         fread(&numOfPages, sizeof(unsigned), 1, myFile);
-        printf("Number of Pages Loaded: {%d} ", numOfPages);
+        printf("Page Count:{%d} ", numOfPages);
 
         fread(&readPageCounter, sizeof(unsigned), 1, myFile);
-        printf("Read Count Loaded: %d ", readPageCounter);
+        printf("Read Count:{%d} ", readPageCounter);
 
         fread(&writePageCounter, sizeof(unsigned), 1, myFile);
-        printf("Write Count Loaded: %d ", writePageCounter);
+        printf("Write Count: {%d} ", writePageCounter);
 
-        printf("Loading File Finished...\n");
+        printf("....Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
         fseek(myFile,0,SEEK_SET);
