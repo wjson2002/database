@@ -70,7 +70,7 @@ namespace PeterDB {
     RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, RID &rid) {
         printf("Start insertRecord:");
-        printRecord(recordDescriptor, data, std::cout);
+
         char buffer[PAGE_SIZE];
         PageNum pageNumber = rid.pageNum;
         int totalNumOfPages = fileHandle.numOfPages;
@@ -649,7 +649,7 @@ namespace PeterDB {
                         memcpy(data, dataPointer, sizeof(int));
                         break;
                     case TypeReal:
-                        memcpy(data, dataPointer, sizeof(int));
+                        memcpy(data, dataPointer, sizeof(float));
                         break;
                     case TypeVarChar:
                         int *length = (int *) dataPointer;

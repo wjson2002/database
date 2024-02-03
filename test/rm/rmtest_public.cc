@@ -630,7 +630,7 @@ namespace PeterDBTesting {
         };
 
         ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attrs, rmsi), success) <<
-                                                                                      "RelationManager::scan() should succeed.";
+                                                                                         "RelationManager::scan() should succeed.";
 
         unsigned count = 0;
         outBuffer = malloc(bufSize);
@@ -821,7 +821,7 @@ namespace PeterDBTesting {
 
         ASSERT_TRUE(std::includes(actualAttrs.begin(), actualAttrs.end(),
                                   expectedAttrs.begin(), expectedAttrs.end()))
-                                  << "Tables table's schema is not correct.";
+                                    << "Tables table's schema is not correct.";
 
         PeterDB::RID rid;
         bufSize = 1000;
