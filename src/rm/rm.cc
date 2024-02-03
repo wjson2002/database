@@ -122,7 +122,7 @@ namespace PeterDB {
         void* value[100];
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
-        printf("Loojing for {%s}", tableName.c_str());
+        //printf("Loojing for {%s}", tableName.c_str());
         rbfm.scan(tableFileHandle, tableRecordDescriptor,
                   "Name", EQ_OP, tableName.c_str(), attributeNames,
                   Iterator);
@@ -134,7 +134,7 @@ namespace PeterDB {
         int tableID = *(int*)(pointer + 1);
 
         //Need to get table ID
-        printf("GEtting attribute of tableID: {%d}\n", tableID);
+        //printf("GEtting attribute of tableID: {%d}\n", tableID);
         std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
 
         attrs = recordDescriptor;
@@ -183,8 +183,13 @@ namespace PeterDB {
         FileHandle fh = tableIDmap[tableID];
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
 
-        rbfm.readRecord(fh, recordD, rid, data);
-        return 0;
+        int result = rbfm.readRecord(fh, recordD, rid, data);
+        if(result == 0){
+            return 0;
+        }
+        else{
+            return -1;
+        }
     }
 
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
@@ -303,7 +308,7 @@ namespace PeterDB {
         name[length] = '\0';
         dataPointer += length;
         result.name = std::string(name);
-        printf("ATTR NAME: {%s}\n", result.name.c_str());
+        //printf("ATTR NAME: {%s}\n", result.name.c_str());
         int type = *(int*)dataPointer;
         AttrType attrtype;
         dataPointer += 4;
@@ -333,6 +338,7 @@ namespace PeterDB {
         int value = table_id;
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
+
         rbfm.scan(attributeFileHandle, attributeRecordDescriptor,
                   "ID", EQ_OP, &value, attributeNames,
                   Iterator);
@@ -340,10 +346,10 @@ namespace PeterDB {
 
         for(auto RID : Iterator.recordRIDS){
             void* temp[100];
-            printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
+            //printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
             rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
             Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
-            printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
+            //printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
             result.push_back(tempAttr);
         }
         return result;

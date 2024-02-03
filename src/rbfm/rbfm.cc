@@ -241,8 +241,8 @@ namespace PeterDB {
                readBuffer + 2 + (2 * sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
 
 
-        if(length == 0){
-            printf("Record does not exist\n");
+        if(length == 0 || length >= PAGE_SIZE){
+           // printf("Record does not exist\n");
             return -1;
         }
 
@@ -714,16 +714,16 @@ namespace PeterDB {
                     readAttribute(fileHandle, recordDescriptor, tempRID, conditionAttribute, d);
                     if(type == TypeInt)
                     {
-                        printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                        //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
                         if (*(int *) value == *(int *) d) {
-                            printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                            //printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
                             rbfm_ScanIterator.recordRIDS.push_back(tempRID);
                         }
 
                     }
 
                     else if(type == TypeReal){
-                        printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+                        //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
 
                         if (*(float *) value == *(float *) d) {
                             printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
@@ -733,7 +733,7 @@ namespace PeterDB {
                     }
                     else if(type == TypeVarChar)
                     {
-                        printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
+                        //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
 
                         if (strcmp((char*)value, (char*)d) == 0){
                             printf("Macth found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
