@@ -24,10 +24,6 @@ namespace PeterDB {
         printf("Start Creating File");
         struct stat fileInfo{};
 
-        if(stat(fileName.c_str(), &fileInfo) == 0){
-            perror("File already created");
-            return -1;
-        }
         FILE* file;
         file = fopen(fileName.c_str(), "wr+");
         pfmInitFile(file);

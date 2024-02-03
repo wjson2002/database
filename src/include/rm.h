@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-
+#include <map>
 #include "src/include/rbfm.h"
 
 namespace PeterDB {
@@ -92,10 +92,14 @@ namespace PeterDB {
 
 
     private:
+        RC initCatalogTables();
         void* convert(std::vector<Attribute>& recordDescriptor, const std::string data[]);
         Attribute convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data);
         std::vector<Attribute> getRecordDescriptor(int table_id);
+
         bool CatalogActive = false;
+        std::map<int, FileHandle> tableIDmap;
+        std::map<std::string, int> tableNameToIdMap;
         FileHandle tableFileHandle;
         FileHandle attributeFileHandle;
         FileHandle currentFileHandle;

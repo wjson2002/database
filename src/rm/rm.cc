@@ -1,5 +1,5 @@
 #include "src/include/rm.h"
-#include <map>
+
 #include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,72 +45,64 @@ namespace PeterDB {
         this->CatalogActive = true;
         rbfm.createFile(DEFAULT_TABLES_NAME);
         rbfm.openFile(DEFAULT_TABLES_NAME,tableFileHandle);
+        initCatalogTables();
 
-        RID rid;
-        std::string data[] = {"0", "Tables", "Table.bin"};
-        auto result = convert(tableRecordDescriptor, data);
-        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-        std::string attributesData[] = {"1", "Attributes", "Attributes.bin"};
-        auto attributeBytes = convert(tableRecordDescriptor, attributesData);
-        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, attributeBytes, rid);
-
-
-        //create attribute file
-        RecordBasedFileManager::instance().createFile(DEFAULT_ATTRIBUTE_NAME);
-
-        RecordBasedFileManager::instance().openFile(DEFAULT_ATTRIBUTE_NAME,
-                                                    attributeFileHandle);
-        std::string tableAttr0[] = {"0", "id", "0", "0"};
-        auto bytes = convert(attributeRecordDescriptor,  tableAttr0);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
-
-        std::string tableAttr1[] = {"0", "name", "2", "1"};
-        bytes = convert(attributeRecordDescriptor,  tableAttr1);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
-
-        std::string tableAttr2[] = {"0", "filename", "2", "2"};
-        bytes = convert(attributeRecordDescriptor,  tableAttr2);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
-
-        std::string AttrAttr0[] = {"1", "table_id", "0", "0"};
-        bytes = convert(attributeRecordDescriptor,   AttrAttr0);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
-
-        std::string AttrAttr1[] = {"1", "name", "0", "1"};
-        bytes = convert(attributeRecordDescriptor,   AttrAttr1);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
-        std::string AttrAttr2[] = {"1", "type", "0", "2"};
-        bytes = convert(attributeRecordDescriptor,   AttrAttr2);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
-        std::string AttrAttr3[] = {"1", "pos", "0", "3"};
-        bytes = convert(attributeRecordDescriptor,   AttrAttr3);
-        rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
         return 0;
     }
 
     RC RelationManager::deleteCatalog() {
-        if(CatalogActive == false){
-            printf("Catalog not active\n");
-            return -1;
-        }
+        printf("Deleting Catalog\n");
+
+//        if(CatalogActive == false){
+//            printf("Catalog not active\n");
+//            return -1;
+//        }
         this->CatalogActive = false;
-        int deleteTables = RecordBasedFileManager::instance().destroyFile(DEFAULT_TABLES_NAME);
-        int deleteAttributes = RecordBasedFileManager::instance().destroyFile(DEFAULT_ATTRIBUTE_NAME);
-        if(deleteTables != 0){
-            printf("Failed to delete Table table");
-        }
+        RecordBasedFileManager::instance().destroyFile(DEFAULT_TABLES_NAME);
+        RecordBasedFileManager::instance().destroyFile(DEFAULT_ATTRIBUTE_NAME);
+
+
         return 0;
     }
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
+        printf("Creating new Table: {%s}\n", tableName.c_str());
         if(!this->CatalogActive){
             printf("Catalog not active\n");
             return -1;
         }
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        int index = tableIDmap.size();
+        if(tableName == DEFAULT_TABLES_NAME) {
+            index = 0;
 
-        int createRBFM = RecordBasedFileManager::instance().createFile(tableName);
-        if(createRBFM != 0){
-            return -1;
+        }
+        else if(tableName == DEFAULT_ATTRIBUTE_NAME){
+            index = 1;
+        }
+        else{
+            FileHandle newTableFileHandle;
+            rbfm.createFile(tableName);
+            rbfm.openFile(tableName,newTableFileHandle);
+            tableIDmap.insert({index, newTableFileHandle});
+        }
+        tableNameToIdMap.insert({tableName, index});
+        RID rid;
+        // Insert records into Table
+        std::string tableIndex = std::to_string(index);
+        std::string data[] = {tableIndex, tableName, tableName+".bin"};
+        auto result = convert(tableRecordDescriptor, data);
+        rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
+
+        // Insert Record into Attributes
+        int position = 0;
+        for(auto attr: attrs){
+            std::string attrData[] = {tableIndex, attr.name,
+                                  std::to_string(attr.type),
+                                  std::to_string(position)};
+            auto bytes = convert(attributeRecordDescriptor, attrData);
+            rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
+            position += 1;
         }
 
         return 0;
@@ -130,47 +122,75 @@ namespace PeterDB {
         void* value[100];
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
+        printf("Loojing for {%s}", tableName.c_str());
         rbfm.scan(tableFileHandle, tableRecordDescriptor,
-                  "ID", EQ_OP, value, attributeNames,
+                  "Name", EQ_OP, tableName.c_str(), attributeNames,
                   Iterator);
-        std::vector<Attribute> recordDescriptor = getRecordDescriptor(1);
-        for(auto RID : Iterator.recordRIDS){
-            void* temp[100];
-            printf("ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
-            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
-            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
-            printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
-        }
 
+        RID rid = Iterator.recordRIDS[0];
+
+        rbfm.readRecord(tableFileHandle, tableRecordDescriptor, rid, &value);
+        char* pointer = (char*)value;
+        int tableID = *(int*)(pointer + 1);
+
+        //Need to get table ID
+        printf("GEtting attribute of tableID: {%d}\n", tableID);
+        std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
+
+        attrs = recordDescriptor;
         return 0;
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
-        int openFile = RecordBasedFileManager::instance().openFile(tableName, currentFileHandle);
-        if(openFile != 0){
-            printf("Open file error for insertTuple\n");
-            return -1;
-        }
-        //RecordBasedFileManager::instance().insertRecord(currentFileHandle, )
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        std::vector<std::string> attributeNames;
+        void* value[100];
 
+
+        int tableID = tableNameToIdMap[tableName];
+        FileHandle fh = tableIDmap[tableID];
+        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+
+        rbfm.insertRecord(fh, recordD, data, rid);
 
         return 0;
     }
 
     RC RelationManager::deleteTuple(const std::string &tableName, const RID &rid) {
-        return -1;
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        int tableID = tableNameToIdMap[tableName];
+        FileHandle fh = tableIDmap[tableID];
+        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+
+        rbfm.deleteRecord(fh, recordD, rid);
+
+        return 0;
     }
 
     RC RelationManager::updateTuple(const std::string &tableName, const void *data, const RID &rid) {
-        return -1;
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        int tableID = tableNameToIdMap[tableName];
+        FileHandle fh = tableIDmap[tableID];
+        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+
+        rbfm.updateRecord(fh, recordD, data, rid);
+        return 0;
     }
 
     RC RelationManager::readTuple(const std::string &tableName, const RID &rid, void *data) {
-        return -1;
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        int tableID = tableNameToIdMap[tableName];
+        FileHandle fh = tableIDmap[tableID];
+        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+
+        rbfm.readRecord(fh, recordD, rid, data);
+        return 0;
     }
 
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
-        return -1;
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        rbfm.printRecord(attrs, data, out);
+        return 0;
     }
 
     RC RelationManager::readAttribute(const std::string &tableName, const RID &rid, const std::string &attributeName,
@@ -186,6 +206,23 @@ namespace PeterDB {
                              RM_ScanIterator &rm_ScanIterator) {
         return -1;
     }
+
+    RC RelationManager::initCatalogTables(){
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        rbfm.createFile(DEFAULT_TABLES_NAME);
+        rbfm.openFile(DEFAULT_TABLES_NAME,tableFileHandle);
+        tableIDmap.insert({0, tableFileHandle});
+
+
+        rbfm.createFile(DEFAULT_ATTRIBUTE_NAME);
+        rbfm.openFile(DEFAULT_ATTRIBUTE_NAME,attributeFileHandle);
+        tableIDmap.insert({1, attributeFileHandle});
+
+        createTable(DEFAULT_TABLES_NAME, tableRecordDescriptor);
+        createTable(DEFAULT_ATTRIBUTE_NAME, attributeRecordDescriptor);
+        return 0;
+    }
+
     void* RelationManager::convert(std::vector<Attribute>& recordDescriptor, const std::string data[]) {
         int numOfNullBytes = ceil((double)recordDescriptor.size() / 8);
         int totalSize = 0;
@@ -273,16 +310,19 @@ namespace PeterDB {
         switch (type) {
             case 0:
                 attrtype = TypeInt;
+                result.length = 4;
                 break;
             case 1:
                 attrtype = TypeReal;
+                result.length = 4;
                 break;
             case 2:
                 attrtype = TypeVarChar;
+                result.length = 50;
                 break;
         }
         result.type = attrtype;
-        result.length = 30;
+
 
         return result;
     }
@@ -293,10 +333,11 @@ namespace PeterDB {
         int value = table_id;
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
-        rbfm.scan(tableFileHandle, attributeRecordDescriptor,
+        rbfm.scan(attributeFileHandle, attributeRecordDescriptor,
                   "ID", EQ_OP, &value, attributeNames,
                   Iterator);
         std::vector<Attribute> result;
+
         for(auto RID : Iterator.recordRIDS){
             void* temp[100];
             printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);

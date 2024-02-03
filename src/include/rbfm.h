@@ -62,10 +62,19 @@ namespace PeterDB {
         // Never keep the results in the memory. When getNextRecord() is called,
         // a satisfying record needs to be fetched from the file.
         // "data" follows the same format as RecordBasedFileManager::insertRecord().
-        RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
+        RC getNextRecord(RID &rid, void *data) {
+            if (currentRID == recordRIDS.end()) {
+                return RBFM_EOF;  // End of file reached
+            }
+            else{
+                rid.pageNum = currentRID->pageNum;
+                rid.slotNum = currentRID->slotNum;
+                currentRID++;
+            }
+        };
 
         RC close() { return -1; };
-
+        std::vector<RID>::iterator currentRID = recordRIDS.begin();
         std::vector<RID> recordRIDS;
     };
 

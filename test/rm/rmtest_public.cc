@@ -59,7 +59,7 @@ namespace PeterDBTesting {
         // 1. getAttributes
 
         // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+        ASSERT_EQ(rm.getAttributes("rm_test_table_1", attrs), success) << "RelationManager::getAttributes() should succeed.";
 
         ASSERT_EQ(attrs[0].name, "emp_name") << "Attribute is not correct.";
         ASSERT_EQ(attrs[0].type, PeterDB::TypeVarChar) << "Attribute is not correct.";

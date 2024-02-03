@@ -226,7 +226,7 @@ namespace PeterDB {
     RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                           const RID &rid, void *data) {
 
-        printf("TRy to read: %d,%d\n", rid.pageNum, rid.slotNum);
+        //printf("TRy to read: %d,%d\n", rid.pageNum, rid.slotNum);
         if(rid.pageNum < 0 || rid.pageNum > fileHandle.numOfPages){
             printf("READ FAIL PAGE OUT OF RANGE\n");
             return -1;
@@ -254,8 +254,7 @@ namespace PeterDB {
                    readBuffer + totalOffset, sizeof(int));
             memcpy(&newRID.slotNum,
                    readBuffer + totalOffset +4, sizeof(short));
-            int test = 99;
-            //memcpy(readBuffer + totalOffset, &test,3);
+
             free(readBuffer);
             readRecord(fileHandle, recordDescriptor, newRID, data);
 
@@ -608,7 +607,7 @@ namespace PeterDB {
     RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                              const RID &rid, const std::string &attributeName, void *data) {
 
-        printf("read attri{%d},{%d}\n",rid.pageNum, rid.slotNum);
+        //printf("read attri{%d},{%d}\n",rid.pageNum, rid.slotNum);
         char buffer[PAGE_SIZE];
 
         unsigned pageNumber = rid.pageNum;
@@ -692,6 +691,7 @@ namespace PeterDB {
                                     const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
+        printf("Scanning for \n");
         int numOfPages = fileHandle.numOfPages;
         int size = 0;
         AttrType type;
@@ -707,38 +707,50 @@ namespace PeterDB {
             for(int j = 0;j < MAX_SLOTS;j++){
                 void* data[size];
                 tempRID.slotNum = j;
+
                 int read = readRecord(fileHandle, recordDescriptor, tempRID, &data);
-                if(read == 0) {
+                if(read == 0){
                     void *d[size];
                     readAttribute(fileHandle, recordDescriptor, tempRID, conditionAttribute, d);
-                    printf("ATTR READ:{%d}\n", *(int *) d);
-                    switch (type) {
-                        case TypeInt:
-                            if (*(int *) value == *(int *) d) {
-                                rbfm_ScanIterator.recordRIDS.push_back(tempRID);
-                            }
-                            break;
-                        case TypeReal:
-                            if (*(float *) value == *(float *) d) {
-                                rbfm_ScanIterator.recordRIDS.push_back(tempRID);
-                            }
-                            break;
-                        case TypeVarChar:
-                            if (*(char *) value == *(char *) d) {
-                                rbfm_ScanIterator.recordRIDS.push_back(tempRID);
-                            }
-                            break;
+                    if(type == TypeInt)
+                    {
+                        printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                        if (*(int *) value == *(int *) d) {
+                            printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                            rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                        }
+
+                    }
+
+                    else if(type == TypeReal){
+                        printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+
+                        if (*(float *) value == *(float *) d) {
+                            printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+                            rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                        }
+
+                    }
+                    else if(type == TypeVarChar)
+                    {
+                        printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
+
+                        if (strcmp((char*)value, (char*)d) == 0){
+                            printf("Macth found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
+                            rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                        }
                     }
                 }
+
+
+
+
             }
         }
-        for(auto RID : rbfm_ScanIterator.recordRIDS){
-            printf("Scanned ROD:{%d}{%d}\n", RID.pageNum,RID.slotNum);
 
-        }
 
         return 0;
-    }
 
+    }
 } // namespace PeterDB
 
