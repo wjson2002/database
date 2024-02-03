@@ -62,20 +62,14 @@ namespace PeterDB {
         // Never keep the results in the memory. When getNextRecord() is called,
         // a satisfying record needs to be fetched from the file.
         // "data" follows the same format as RecordBasedFileManager::insertRecord().
-        RC getNextRecord(RID &rid, void *data) {
-            if (currentRID == recordRIDS.end()) {
-                return RBFM_EOF;  // End of file reached
-            }
-            else{
-                rid.pageNum = currentRID->pageNum;
-                rid.slotNum = currentRID->slotNum;
-                currentRID++;
-            }
-        };
-
+        RC getNextRecord(RID &rid, void *data);
+        RC scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor);
         RC close() { return -1; };
         std::vector<RID>::iterator currentRID = recordRIDS.begin();
         std::vector<RID> recordRIDS;
+        FileHandle fileHandle = fileHandle;
+        std::vector<Attribute> recordDescriptor = recordDescriptor;
+
     };
 
     class RecordBasedFileManager {
@@ -157,7 +151,7 @@ namespace PeterDB {
                 const std::vector<std::string> &attributeNames, // a list of projected attributes
                 RBFM_ScanIterator &rbfm_ScanIterator);
 
-
+        std::vector<RID> scannedRIDS;
 
 
     protected:

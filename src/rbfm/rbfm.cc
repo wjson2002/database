@@ -260,7 +260,7 @@ namespace PeterDB {
 
         }else{
             memcpy(data, readBuffer+totalOffset, length);
-            printRecord(recordDescriptor, data, std::cout);
+
             free(readBuffer);
             return 0;
         }
@@ -691,66 +691,101 @@ namespace PeterDB {
                                     const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
+        scannedRIDS.clear();
         printf("Scanning for \n");
-        int numOfPages = fileHandle.numOfPages;
         int size = 0;
         AttrType type;
+
         for(auto attr : recordDescriptor){
             size += attr.length;
-            if(attr.name == conditionAttribute){
-                type = attr.type;
-            }
         }
-        for(int i = 0;i < numOfPages;i++){
-            RID tempRID;
-            tempRID.pageNum = i;
-            for(int j = 0;j < MAX_SLOTS;j++){
-                void* data[size];
-                tempRID.slotNum = j;
 
-                int read = readRecord(fileHandle, recordDescriptor, tempRID, &data);
-                if(read == 0){
+        RID rid;
+        void* data[size];
+        rbfm_ScanIterator.scanInit(fileHandle, recordDescriptor);
+        while(rbfm_ScanIterator.getNextRecord(rid, &data) != RBFM_EOF){
+            printf("Scan iterator found: {%d}, {%d}\n", rid.pageNum, rid.slotNum);
+            for(auto attr : recordDescriptor){
+                if(attr.name == conditionAttribute){
                     void *d[size];
-                    readAttribute(fileHandle, recordDescriptor, tempRID, conditionAttribute, d);
+                    readAttribute(fileHandle, recordDescriptor, rid, conditionAttribute, d);
+                    type = attr.type;
                     if(type == TypeInt)
                     {
-                        //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                        printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
                         if (*(int *) value == *(int *) d) {
-                            //printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
-                            rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                            printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                            scannedRIDS.push_back(rid);
                         }
-
                     }
-
                     else if(type == TypeReal){
-                        //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+                        printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
 
                         if (*(float *) value == *(float *) d) {
                             printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
-                            rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                            scannedRIDS.push_back(rid);
                         }
-
                     }
                     else if(type == TypeVarChar)
                     {
-                        //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
-
+                        printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
                         if (strcmp((char*)value, (char*)d) == 0){
                             printf("Macth found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
-                            rbfm_ScanIterator.recordRIDS.push_back(tempRID);
+                            scannedRIDS.push_back(rid);
                         }
                     }
                 }
-
-
-
-
             }
         }
 
-
         return 0;
+    }
+    RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data) {
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
 
+        if (currentRID == recordRIDS.end()) {
+            return RBFM_EOF;
+        }
+        else
+        {
+            RC result = rbfm.readRecord(fileHandle, recordDescriptor, *currentRID, data);
+            if (result == 0) {
+                rid = *currentRID;
+                currentRID++;
+                return 0;
+            } else {
+                return RBFM_EOF;
+            }
+        }
+    };
+
+    RC RBFM_ScanIterator::scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor){
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        this->fileHandle = fh;
+        this->recordDescriptor = recordDescriptor;
+        int numOfPages = fileHandle.numOfPages;
+
+        int size = 0;
+        AttrType type;
+
+        for(auto attr : recordDescriptor){
+            size += attr.length;
+        }
+
+        for(int i = 0;i < numOfPages;i++) {
+            RID tempRID;
+            tempRID.pageNum = i;
+            for (int j = 0; j < MAX_SLOTS; j++) {
+                tempRID.slotNum = j;
+                void* data[size];
+                int read = rbfm.readRecord(fileHandle, recordDescriptor, tempRID, &data);
+                if(read == 0) {
+                    recordRIDS.push_back(tempRID);
+                }
+            }
+
+        }
+        currentRID = recordRIDS.begin();
     }
 } // namespace PeterDB
 
