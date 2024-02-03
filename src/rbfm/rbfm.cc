@@ -704,7 +704,7 @@ namespace PeterDB {
         void* data[size];
         rbfm_ScanIterator.scanInit(fileHandle, recordDescriptor);
         while(rbfm_ScanIterator.getNextRecord(rid, &data) != RBFM_EOF){
-            printf("Scan iterator found: {%d}, {%d}\n", rid.pageNum, rid.slotNum);
+            //("Scan iterator found: {%d}, {%d}\n", rid.pageNum, rid.slotNum);
             for(auto attr : recordDescriptor){
                 if(attr.name == conditionAttribute){
                     void *d[size];
@@ -712,14 +712,14 @@ namespace PeterDB {
                     type = attr.type;
                     if(type == TypeInt)
                     {
-                        printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                        //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
                         if (*(int *) value == *(int *) d) {
                             printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }
                     else if(type == TypeReal){
-                        printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+                        //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
 
                         if (*(float *) value == *(float *) d) {
                             printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
@@ -728,7 +728,7 @@ namespace PeterDB {
                     }
                     else if(type == TypeVarChar)
                     {
-                        printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
+                        //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
                         if (strcmp((char*)value, (char*)d) == 0){
                             printf("Macth found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
                             scannedRIDS.push_back(rid);

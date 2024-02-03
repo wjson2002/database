@@ -184,6 +184,11 @@ namespace PeterDB {
     }
 
     RC RelationManager::readTuple(const std::string &tableName, const RID &rid, void *data) {
+        auto it = tableNameToIdMap.find(tableName);
+
+        if(it == tableNameToIdMap.end()){
+            return -1;
+        }
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
