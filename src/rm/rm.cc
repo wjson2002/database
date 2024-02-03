@@ -110,9 +110,6 @@ namespace PeterDB {
 
     RC RelationManager::deleteTable(const std::string &tableName) {
         int deleteRBFMfile = RecordBasedFileManager::instance().destroyFile(tableName);
-        if(deleteRBFMfile != 0){
-            return -1;
-        }
 
         return 0;
     }
