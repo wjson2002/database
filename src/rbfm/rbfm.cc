@@ -239,7 +239,7 @@ namespace PeterDB {
                readBuffer + 2 + (2 * sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
 
 
-        if(length == 0 || length >= PAGE_SIZE){
+        if(length == 0 || length >= PAGE_SIZE || length < -1){
            // printf("Record does not exist\n");
             return -1;
         }
@@ -605,6 +605,7 @@ namespace PeterDB {
     RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                              const RID &rid, const std::string &attributeName, void *data) {
 
+
         //printf("read attri{%d},{%d}\n",rid.pageNum, rid.slotNum);
         char buffer[PAGE_SIZE];
 
@@ -625,6 +626,7 @@ namespace PeterDB {
         void* temp[size];
         memcpy(&temp, buffer + offset, length);
         int numOfNullBytes = ceil((double)recordDescriptor.size()/8);
+
         char* dataPointer = (char*)temp;
 
         char nullIndicators[numOfNullBytes];
@@ -636,23 +638,29 @@ namespace PeterDB {
 
         std::vector<int> bitArray = serialize(nullIndicators, numOfNullBytes);
         int index = 0;
+        float floatValue;
         for (const Attribute& attribute : recordDescriptor){
             if(attribute.name == attributeName){
+                //Allocate 1 byte for null
                 if(bitArray[index] == 1){
                     index ++;
-                    return 0;
+                    memset(data, 1, 1);
+                }
+                else{
+                    memset(data, 0, 1);
                 }
                 switch (attribute.type) {
                     case TypeInt:
-                        memcpy(data, dataPointer, sizeof(int));
+                        memcpy((char*)data + 1, dataPointer, sizeof(int));
                         break;
                     case TypeReal:
-                        memcpy(data, dataPointer, sizeof(float));
+                        memcpy((char*)data + 1, dataPointer, sizeof(float));
+                        floatValue = *(float*)data;
                         break;
                     case TypeVarChar:
                         int *length = (int *) dataPointer;
                         dataPointer += 4;
-                        memcpy(data, dataPointer, *length);
+                        memcpy((char*)data + 1, dataPointer, *length);
                         for (int i = 0; i < *length; i++) {
                             dataPointer++;
                         }
@@ -690,7 +698,7 @@ namespace PeterDB {
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
         scannedRIDS.clear();
-        printf("Scanning for \n");
+        printf("Scanning...\n");
         int size = 0;
         AttrType type;
 
@@ -707,28 +715,29 @@ namespace PeterDB {
                 if(attr.name == conditionAttribute){
                     void *d[size];
                     readAttribute(fileHandle, recordDescriptor, rid, conditionAttribute, d);
+                    char* pointer = (char*)d + 1;
                     type = attr.type;
                     if(type == TypeInt)
                     {
                         //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
-                        if (*(int *) value == *(int *) d) {
-                            printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
+                        if (*(int *) value == *(int *) pointer) {
+                            printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)pointer, *(int*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }
                     else if(type == TypeReal){
                         //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
-
-                        if (*(float *) value == *(float *) d) {
-                            printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+                        printRecord(recordDescriptor, data, std::cout);
+                        if (*(float *) value == *(float *) pointer) {
+                            printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)pointer, *(float*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }
                     else if(type == TypeVarChar)
                     {
                         //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
-                        if (strcmp((char*)value, (char*)d) == 0){
-                            printf("Macth found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
+                        if (strcmp((char*)value, (char*)pointer) == 0){
+                            printf("Macth found:{%s}, {%s}, {%d}\n", (char *)pointer, (char*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }

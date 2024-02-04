@@ -49,13 +49,14 @@ namespace PeterDB {
     RC RelationManager::deleteCatalog() {
         printf("Deleting Catalog\n");
 
-//        if(CatalogActive == false){
-//            printf("Catalog not active\n");
-//            return -1;
-//        }
+        if(CatalogActive == false){
+            printf("Catalog not active\n");
+            return -1;
+        }
+        for(const auto& i : tableNameToIdMap){
+            RecordBasedFileManager::instance().destroyFile(i.first);
+        }
         this->CatalogActive = false;
-        RecordBasedFileManager::instance().destroyFile(DEFAULT_TABLES_NAME);
-        RecordBasedFileManager::instance().destroyFile(DEFAULT_ATTRIBUTE_NAME);
         tableNameToIdMap.clear();
         tableIDmap.clear();
 
@@ -129,18 +130,29 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        if(CatalogActive == false){
-            createCatalog();
+        printf("Getting attributes\n");
+
+        for(const auto& i : tableNameToIdMap){
+            printf("{%s} \n", i.first.c_str());
         }
+//        if(CatalogActive == false){
+//            createCatalog();
+//        }
+        if(TableExists(tableName)){
 
-        int tableID = tableNameToIdMap[tableName];
+            int tableID = tableNameToIdMap[tableName];
 
-        //Need to get table ID
-        printf("Getting attr of name:{%s}: ID{%d}\n", tableName.c_str(), tableID);
-        std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
+            //Need to get table ID
+            printf("Getting attr of name:{%s}: ID{%d}\n", tableName.c_str(), tableID);
+            std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
 
-        attrs = recordDescriptor;
-        return 0;
+            attrs = recordDescriptor;
+            return 0;
+        }
+        else
+        {
+            return -1;
+        }
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
@@ -152,13 +164,12 @@ namespace PeterDB {
         }
 
         std::vector<std::string> attributeNames;
-        void* value[100];
-
 
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-
+        printf("Inserting: ");
+        printTuple(recordD, data, std::cout);
         rbfm.insertRecord(fh, recordD, data, rid);
 
         return 0;
@@ -229,14 +240,19 @@ namespace PeterDB {
                              const void *value,
                              const std::vector<std::string> &attributeNames,
                              RM_ScanIterator &rm_ScanIterator) {
+        if(TableExists(tableName)){
+            RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+            int tableID = tableNameToIdMap[tableName];
+            FileHandle fh = tableIDmap[tableID];
+            std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+            RBFM_ScanIterator Iterator = RBFM_ScanIterator();
+            rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
+            return 0;
+        }
+        else{
+            return -1;
+        }
 
-        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        int tableID = tableNameToIdMap[tableName];
-        FileHandle fh = tableIDmap[tableID];
-        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-        RBFM_ScanIterator Iterator = RBFM_ScanIterator();
-        rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
-        return 0;
     }
 
     RC RelationManager::initCatalogTables(){
@@ -294,7 +310,10 @@ namespace PeterDB {
                 }
                     break;
                 case TypeReal: {
+
                     float converted = stof(data[index]);
+                    size_t length = data[index].length();
+                    uint8_t* byteBuffer = new uint8_t[length];
                     memcpy(resultPointer, &converted, sizeof(float));
                     resultPointer += sizeof(float);
                 }
@@ -380,6 +399,17 @@ namespace PeterDB {
             result.push_back(tempAttr);
         }
         return result;
+    }
+
+    bool RelationManager::TableExists(std::string tableName){
+        auto it = tableNameToIdMap.find(tableName);
+
+        if(it == tableNameToIdMap.end()){
+            return false;
+        }
+        else{
+            return true;
+        }
     }
 
     RM_ScanIterator::RM_ScanIterator() = default;

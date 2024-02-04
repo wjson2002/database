@@ -96,13 +96,14 @@ namespace PeterDB {
         void* convert(std::vector<Attribute>& recordDescriptor, const std::string data[]);
         Attribute convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data);
         std::vector<Attribute> getRecordDescriptor(int table_id);
+        bool TableExists(std::string tableName);
 
         bool CatalogActive = false;
         std::map<int, FileHandle> tableIDmap;
         std::map<std::string, int> tableNameToIdMap;
         FileHandle tableFileHandle;
         FileHandle attributeFileHandle;
-        FileHandle currentFileHandle;
+
 
     protected:
         RelationManager();                                                  // Prevent construction

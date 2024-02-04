@@ -252,6 +252,7 @@ namespace PeterDBTesting {
         ASSERT_EQ(rm.readAttribute(tableName, rid, "salary", outBuffer), success)
                                     << "RelationManager::readAttribute() should succeed.";
 
+
         float returnedSalary = *(float *) ((uint8_t *) outBuffer + 1);
         ASSERT_EQ(salary, returnedSalary) << "The returned salary does not match the inserted.";
 

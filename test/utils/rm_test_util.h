@@ -119,8 +119,8 @@ namespace PeterDBTesting {
         PeterDB::RelationManager &rm = PeterDB::RelationManager::instance();
 
         void SetUp() override {
-
-            if (!fileExists(tableName)) {
+            printf("doing setup\n");
+            //if (!fileExists(tableName)) {
 
                 // Try to delete the System Catalog.
                 // If this is the first time, it will generate an error. It's OK and we will ignore that.
@@ -135,7 +135,7 @@ namespace PeterDBTesting {
                 ASSERT_EQ(rm.createTable(tableName, table_attrs), success)
                                             << "Create table " << tableName << " should succeed.";
                 ASSERT_TRUE(fileExists(tableName)) << "Table " << tableName << " file should exist now.";
-            }
+            //}
 
         }
 
