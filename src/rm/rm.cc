@@ -8,9 +8,9 @@
 
 namespace PeterDB {
     std::string DEFAULT_TABLES_NAME = "Tables";
-    std::vector<Attribute> tableRecordDescriptor = {{"ID", TypeInt, sizeof(int)},
-                                                    {"Name", TypeVarChar, 50},
-                                                    {"Filename",TypeVarChar, 80}};
+    std::vector<Attribute> tableRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
+                                                    {"table-name", TypeVarChar, 50},
+                                                    {"file-name",TypeVarChar, 80}};
     std::string DEFAULT_ATTRIBUTE_NAME = "Attributes";
     std::vector<Attribute> attributeRecordDescriptor = {{"ID", TypeInt, sizeof(int)},
                                                     {"Name", TypeVarChar, 50},
