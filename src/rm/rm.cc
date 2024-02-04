@@ -168,7 +168,7 @@ namespace PeterDB {
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-        printf("Inserting: ");
+        //printf("Inserting: ");
         printTuple(recordD, data, std::cout);
         rbfm.insertRecord(fh, recordD, data, rid);
 
