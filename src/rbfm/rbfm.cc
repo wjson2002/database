@@ -5,7 +5,7 @@
 
 
 namespace PeterDB {
-    int SLOTSIZE = 203;
+    int SLOTSIZE = 323;
     int MAX_SLOTS = (SLOTSIZE - 3) / 8;
     int MIN_RECORD_SIZE = 6;
     RecordBasedFileManager &RecordBasedFileManager::instance() {
@@ -95,16 +95,18 @@ namespace PeterDB {
         fileHandle.readPage(lastPage, buffer);
         short freeSpace;
         std::memmove(&freeSpace, buffer, sizeof(short));
-
-        if(freeSpace >= recordSize){
+        char numOfRecords;
+        memmove(&(numOfRecords), buffer + 2, sizeof(char));
+        if(freeSpace >= recordSize && (int)numOfRecords < MAX_SLOTS){
             rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                    recordSize, buffer, offsetPointer);
 
             std::memmove(buffer+offsetPointer, data, recordSize);
             std::memmove(buffer+offsetPointer, data, recordSize);
             fileHandle.writePage(rid.pageNum, buffer);
-
+            printf("FreeSpace: {%d} recordSize:{%d} Inserted to {%d}, {%d}\n", freeSpace,recordSize, rid.pageNum, rid.slotNum);
             return 0;
+
         }
 
         //check all other pages
@@ -114,18 +116,19 @@ namespace PeterDB {
             fileHandle.readPage(rid.pageNum, buffer);
             std::memmove(&freeSpace, buffer, sizeof(short));
 
-            if(freeSpace >= recordSize){
+            memmove(&(numOfRecords), buffer + 2, sizeof(char));
+            if(freeSpace >= recordSize && (int)numOfRecords < MAX_SLOTS){
                 rid.slotNum = addRecordToSlotDirectory(fileHandle, rid,
                                                        recordSize, buffer, offsetPointer);
 
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 fileHandle.writePage(rid.pageNum, buffer);
-
+                printf("Inserted to {%d}, {%d}", rid.pageNum, rid.slotNum);
                 return 0;
             }
         }
-        //No free space avaliable: Add a new page.
+        //No free space avaliable or no slots left: Add a new page.
         fileHandle.appendPage(data);
         rid.pageNum = fileHandle.numOfPages - 1;
         initSlotDirectory(fileHandle, rid.pageNum);
@@ -133,6 +136,7 @@ namespace PeterDB {
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid, recordSize, buffer, offsetPointer);
         std::memmove(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
+        printf("Inserted to {%d}, {%d}", rid.pageNum, rid.slotNum);
         return 0;
 
     }
@@ -140,9 +144,9 @@ namespace PeterDB {
     unsigned short RecordBasedFileManager::addRecordToSlotDirectory(FileHandle &fileHandle, RID &rid,
                                                                     int length, char (&buffer)[PAGE_SIZE], int &offsetPointer) {
         short freeSize;
-        memcpy(&freeSize, buffer, sizeof(short));
+        memmove(&freeSize, buffer, sizeof(short));
         char numOfRecords;
-        memcpy(&(numOfRecords), buffer + 2, sizeof(char));
+        memmove(&(numOfRecords), buffer + 2, sizeof(char));
 
         unsigned numOfPages = fileHandle.numOfPages;
         ushort slotNum = numOfRecords;
@@ -151,14 +155,14 @@ namespace PeterDB {
         if(numOfRecords == 0){
 
             buffer[2] = updatedNumOfRecords;
-            memcpy(buffer, &newSize, sizeof(short));
-            memcpy(buffer + 2 + sizeof(int), &length, sizeof(int));
-            memcpy(buffer + 2 + 2 * sizeof(int), &SLOTSIZE, sizeof(int));
+            memmove(buffer, &newSize, sizeof(short));
+            memmove(buffer + 2 + sizeof(int), &length, sizeof(int));
+            memmove(buffer + 2 + 2 * sizeof(int), &SLOTSIZE, sizeof(int));
             offsetPointer=SLOTSIZE;
         }
         else
         {
-            memcpy(buffer, &newSize, sizeof(short));
+            memmove(buffer, &newSize, sizeof(short));
             buffer[2] = updatedNumOfRecords;
 
             int totalLength = 0;
@@ -167,7 +171,7 @@ namespace PeterDB {
             //find first open slot where length of record is 0
             for(int i = 0;i < numOfRecords; i++) {
                 int l = -1;
-                memcpy(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
+                memmove(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
                 if(l == 0){
                     slotNum = i;
                     break;
@@ -177,7 +181,7 @@ namespace PeterDB {
             //Find total length of elements to create offset for inserted record
             for(int i = 0;i < numOfRecords; i++) {
                 int l;
-                memcpy(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
+                memmove(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
                 if(l < 0){
                     printf("TOMBSTONE RECORD DETECTED");
                     l = MIN_RECORD_SIZE;
@@ -188,8 +192,8 @@ namespace PeterDB {
             //update offset
             offsetPointer=totalLength + SLOTSIZE;
             int total = totalLength + defaultlen;
-            memcpy(buffer + 2 + 2 * sizeof(int) + (slotNum) * 8, &total, sizeof(int));
-            memcpy(buffer + 2  + sizeof(int) + (slotNum) * 8, &length, sizeof(int));
+            memmove(buffer + 2 + 2 * sizeof(int) + (slotNum) * 8, &total, sizeof(int));
+            memmove(buffer + 2  + sizeof(int) + (slotNum) * 8, &length, sizeof(int));
         }
         return slotNum;
     }
@@ -225,7 +229,7 @@ namespace PeterDB {
                                           const RID &rid, void *data) {
 
         //printf("TRy to read: %d,%d\n", rid.pageNum, rid.slotNum);
-        if(rid.pageNum < 0 || rid.pageNum > fileHandle.numOfPages){
+        if(rid.pageNum < 0){
             printf("READ FAIL PAGE OUT OF RANGE\n");
             return -1;
         }

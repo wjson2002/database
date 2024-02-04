@@ -11,7 +11,7 @@ namespace PeterDB {
     std::vector<Attribute> tableRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
                                                     {"table-name", TypeVarChar, 50},
                                                     {"file-name",TypeVarChar, 80}};
-    std::string DEFAULT_ATTRIBUTE_NAME = "Attributes";
+    std::string DEFAULT_ATTRIBUTE_NAME = "Columns";
     std::vector<Attribute> attributeRecordDescriptor = {{"ID", TypeInt, sizeof(int)},
                                                     {"Name", TypeVarChar, 50},
                                                     {"Type",TypeInt, sizeof(int)},
@@ -169,11 +169,13 @@ namespace PeterDB {
 
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
+        rbfm.openFile(tableName, fh);
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-        printf("Inserting: ");
-        printTuple(recordD, data, std::cout);
+        printf("Inserting: {%s}{%d}\n", tableName.c_str(), tableID);
+        fh.loadFile();
+        //printTuple(recordD, data, std::cout);
         rbfm.insertRecord(fh, recordD, data, rid);
-
+        rbfm.closeFile(fh);
         return 0;
     }
 
@@ -199,23 +201,26 @@ namespace PeterDB {
     }
 
     RC RelationManager::readTuple(const std::string &tableName, const RID &rid, void *data) {
-        auto it = tableNameToIdMap.find(tableName);
-
-        if(it == tableNameToIdMap.end()){
-            return -1;
-        }
-        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        int tableID = tableNameToIdMap[tableName];
-        FileHandle fh = tableIDmap[tableID];
-        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-
-        int result = rbfm.readRecord(fh, recordD, rid, data);
-        if(result == 0){
-            return 0;
+        if(TableExists(tableName)){
+            RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+            int tableID = tableNameToIdMap[tableName];
+            FileHandle fh = tableIDmap[tableID];
+            std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+            rbfm.openFile(tableName, fh);
+            int result = rbfm.readRecord(fh, recordD, rid, data);
+            printf("Read Tuple: ");
+            rbfm.printRecord(recordD, data, std::cout);
+            if(result == 0){
+                return 0;
+            }
+            else{
+                return -1;
+            }
         }
         else{
             return -1;
         }
+
     }
 
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
@@ -394,7 +399,7 @@ namespace PeterDB {
         std::vector<Attribute> result;
 
         for(auto RID : rbfm.scannedRIDS){
-            void* temp[100];
+            void* temp[150];
             //printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
             rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
             Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
@@ -420,10 +425,15 @@ namespace PeterDB {
     RM_ScanIterator::~RM_ScanIterator() = default;
 
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
-        rbfmIterator.getNextRecord(rid, data);
+        int result = rbfmIterator.getNextRecord(rid, data);
+        return result;
     }
 
-    RC RM_ScanIterator::close() { return 0; }
+    RC RM_ScanIterator::close() {
+        rbfmIterator.close();
+        return 0; }
+
+
 
     // Extra credit work
     RC RelationManager::dropAttribute(const std::string &tableName, const std::string &attributeName) {

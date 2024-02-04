@@ -179,7 +179,7 @@ namespace PeterDB {
     }
 
     void FileHandle::loadFile(){
-        printf("Loading File...\n");
+        printf("Loading File...");
 
         fseek(myFile,0,SEEK_SET);
         fread(&numOfPages, sizeof(unsigned), 1, myFile);

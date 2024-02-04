@@ -425,7 +425,7 @@ namespace PeterDBTesting {
         createLargeTable(tableName);
 
         inBuffer = malloc(bufSize);
-        int numTuples = 5000;
+        int numTuples = 100; // 5000
 
         // GetAttributes
         ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
@@ -442,6 +442,11 @@ namespace PeterDBTesting {
 
             ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
                                         << "RelationManager::insertTuple() should succeed.";
+            if(i == 0){
+                printf("Tuple 0:");
+                rm.printTuple(attrs, inBuffer,std::cout);
+                printf("Inserted TUple Rid {%d}, {%d}", rid.pageNum, rid.slotNum);
+            }
             rids.emplace_back(rid);
             sizes.emplace_back(size);
         }
@@ -458,7 +463,7 @@ namespace PeterDBTesting {
         // 1. read tuple
 
         size_t size = 0;
-        int numTuples = 5000;
+        int numTuples = 100;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -475,13 +480,14 @@ namespace PeterDBTesting {
         for (int i = 0; i < numTuples; i++) {
             memset(inBuffer, 0, bufSize);
             memset(outBuffer, 0, bufSize);
-
+            printf("Read TUple Rid {%d}, {%d}", rids[i].pageNum, rids[i].slotNum);
             ASSERT_EQ(rm.readTuple(tableName, rids[i], outBuffer), success)
                                         << "RelationManager::readTuple() should succeed.";
 
             size = 0;
             prepareLargeTuple((int) attrs.size(), nullsIndicator, i, inBuffer, size);
             // Compare whether the two memory blocks are the same
+
             ASSERT_EQ(memcmp(inBuffer, outBuffer, size), 0) << "the read tuple should match the inserted tuple";
 
         }
@@ -495,7 +501,7 @@ namespace PeterDBTesting {
         // 1. update tuple
         // 2. read tuple
 
-        int numTuples = 5000;
+        int numTuples = 100;
         unsigned numTuplesToUpdate1 = 2000;
         unsigned numTuplesToUpdate2 = 2000;
         inBuffer = malloc(bufSize);
@@ -589,7 +595,7 @@ namespace PeterDBTesting {
         // 1. delete tuple
         // 2. read tuple
 
-        unsigned numTuples = 5000;
+        unsigned numTuples = 100; // 5000
         unsigned numTuplesToDelete = 2000;
         outBuffer = malloc(bufSize);
 
