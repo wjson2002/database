@@ -152,7 +152,7 @@ namespace PeterDB {
             int tableID = tableNameToIdMap[tableName];
 
             //Need to get table ID
-            printf("Getting attr of name:{%s}: ID{%d}\n", tableName.c_str(), tableID);
+           // printf("Getting attr of name:{%s}: ID{%d}\n", tableName.c_str(), tableID);
             std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
 
             attrs = recordDescriptor;
@@ -178,8 +178,8 @@ namespace PeterDB {
         FileHandle fh = tableIDmap[tableID];
         rbfm.openFile(tableName, fh);
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-        printf("Inserting: {%s}{%d}\n", tableName.c_str(), tableID);
-        fh.loadFile();
+        //printf("Inserting: {%s}{%d}\n", tableName.c_str(), tableID);
+        //fh.loadFile();
         //printTuple(recordD, data, std::cout);
         rbfm.insertRecord(fh, recordD, data, rid);
         rbfm.closeFile(fh);
@@ -187,14 +187,22 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteTuple(const std::string &tableName, const RID &rid) {
-        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        int tableID = tableNameToIdMap[tableName];
-        FileHandle fh = tableIDmap[tableID];
-        std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-        rbfm.openFile(tableName, fh);
-        rbfm.deleteRecord(fh, recordD, rid);
-        rbfm.closeFile( fh);
-        return 0;
+        if(TableExists(tableName))
+        {
+            RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+            int tableID = tableNameToIdMap[tableName];
+            FileHandle fh = tableIDmap[tableID];
+            std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+            rbfm.openFile(tableName, fh);
+            rbfm.deleteRecord(fh, recordD, rid);
+            rbfm.closeFile( fh);
+            return 0;
+        }
+        else{
+            printf("Delete tuple Error");
+            return -1;
+        }
+
     }
 
     RC RelationManager::updateTuple(const std::string &tableName, const void *data, const RID &rid) {
@@ -216,8 +224,8 @@ namespace PeterDB {
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
-            printf("Read Tuple: ");
-            rbfm.printRecord(recordD, data, std::cout);
+            //printf("Read Tuple: ");
+            //rbfm.printRecord(recordD, data, std::cout);
             if(result == 0){
                 return 0;
             }

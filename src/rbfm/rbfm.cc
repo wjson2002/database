@@ -124,7 +124,7 @@ namespace PeterDB {
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 std::memmove(buffer+offsetPointer, data, recordSize);
                 fileHandle.writePage(rid.pageNum, buffer);
-                printf("Inserted to {%d}, {%d}", rid.pageNum, rid.slotNum);
+                //printf("Inserted to {%d}, {%d}", rid.pageNum, rid.slotNum);
                 return 0;
             }
         }
@@ -136,7 +136,7 @@ namespace PeterDB {
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid, recordSize, buffer, offsetPointer);
         std::memmove(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
-        printf("Inserted to {%d}, {%d}", rid.pageNum, rid.slotNum);
+        //printf("Inserted to {%d}, {%d}", rid.pageNum, rid.slotNum);
         return 0;
 
     }

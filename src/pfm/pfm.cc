@@ -21,7 +21,7 @@ namespace PeterDB {
 
     RC PagedFileManager::createFile(const std::string &fileName) {
         //MAKE SURE TO CLOSE FILE AFTER OPENING
-        printf("Start Creating File");
+
         struct stat fileInfo{};
 
         FILE* file;
@@ -33,7 +33,7 @@ namespace PeterDB {
             return -1;
         }
         else{
-            printf("file created... now closing\n");
+            //printf("file created... now closing\n");
             fclose(file);
         }
         return 0;
@@ -191,6 +191,7 @@ namespace PeterDB {
         fread(&writePageCounter, sizeof(unsigned), 1, myFile);
        // printf("Write Count: {%d} ", writePageCounter);
 
+        fread(&appendPageCounter, sizeof(unsigned), 1, myFile);
        // printf("....Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
@@ -208,13 +209,13 @@ namespace PeterDB {
 
         fflush(myFile);
 
-        printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
+       // printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
     }
 
     void FileHandle::initPage() {
         if(myFile != nullptr){
             fseek(myFile,0,SEEK_END);
-            printf("calling init: file size: %ld\n", ftell(myFile));
+            //printf("calling init: file size: %ld\n", ftell(myFile));
 
 
             fseek(myFile,0,SEEK_SET);
