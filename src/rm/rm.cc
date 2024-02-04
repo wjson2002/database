@@ -15,7 +15,8 @@ namespace PeterDB {
     std::vector<Attribute> attributeRecordDescriptor = {{"ID", TypeInt, sizeof(int)},
                                                     {"Name", TypeVarChar, 50},
                                                     {"Type",TypeInt, sizeof(int)},
-                                                    {"Position",TypeInt, sizeof(int)}};
+                                                    {"Position",TypeInt, sizeof(int)},
+                                                        {"Length",TypeInt, sizeof(int)}};
 
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
@@ -100,7 +101,8 @@ namespace PeterDB {
         for(auto attr: attrs){
             std::string attrData[] = {tableIndex, attr.name,
                                   std::to_string(attr.type),
-                                  std::to_string(position)};
+                                  std::to_string(position),
+                                      std::to_string(attr.length)};
             auto bytes = convert(attributeRecordDescriptor, attrData);
             rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
             position += 1;
@@ -168,7 +170,7 @@ namespace PeterDB {
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-        //printf("Inserting: ");
+        printf("Inserting: ");
         printTuple(recordD, data, std::cout);
         rbfm.insertRecord(fh, recordD, data, rid);
 
@@ -312,8 +314,6 @@ namespace PeterDB {
                 case TypeReal: {
 
                     float converted = stof(data[index]);
-                    size_t length = data[index].length();
-                    uint8_t* byteBuffer = new uint8_t[length];
                     memcpy(resultPointer, &converted, sizeof(float));
                     resultPointer += sizeof(float);
                 }

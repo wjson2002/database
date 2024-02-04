@@ -393,7 +393,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const RID &rid) {
-        printf("Deleting {%d},{%d}\n",rid.pageNum, rid.slotNum);
+        //printf("Deleting {%d},{%d}\n",rid.pageNum, rid.slotNum);
         bool isTombstone = false;
         char *buffer = (char*)malloc(4096);
         unsigned pageNumber = rid.pageNum;
@@ -436,7 +436,7 @@ namespace PeterDB {
 
 
         //Shift slot directory
-        printf("SHIFTING dest %d,src %d,len %d\n",offset,offset +length,PAGE_SIZE - offset - length);
+        //printf("SHIFTING dest %d,src %d,len %d\n",offset,offset +length,PAGE_SIZE - offset - length);
         memmove(buffer + offset,
                 buffer + offset + length,
                 PAGE_SIZE - offset - length);
