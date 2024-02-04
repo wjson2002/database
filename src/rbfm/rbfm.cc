@@ -450,7 +450,7 @@ namespace PeterDB {
             if(tempLen != 0 && tempLen <= currentFileSize){
                 unsigned newOffset = offset - length;
                 memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
-                printf("Moving dest %d to src %d\n",offset,offset-length);
+                //printf("Moving dest %d to src %d\n",offset,offset-length);
             }
         }
 
@@ -466,7 +466,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, const RID &rid) {
-        printf("Updating {%d},{%d}\n",rid.pageNum, rid.slotNum);
+        //printf("Updating {%d},{%d}\n",rid.pageNum, rid.slotNum);
         char *buffer = (char*) malloc(PAGE_SIZE);
         unsigned pageNumber = rid.pageNum;
         unsigned slotNumber = rid.slotNum;
@@ -487,10 +487,10 @@ namespace PeterDB {
 
         //Updated record information
         int updatedRecordSize = getRecordSize(recordDescriptor, data);
-        printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
+        //printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
         //Scenario 1: Updated Record Size = Old Record Size
         if(length == updatedRecordSize){
-            printf("Updating scenario 1\n");
+            //printf("Updating scenario 1\n");
             memcpy(buffer+offset, data, updatedRecordSize);
             fileHandle.writePage(rid.pageNum, buffer);
             free(buffer);
@@ -498,7 +498,7 @@ namespace PeterDB {
         }
             //Scenario 2: Updated Record Size < Old Record Size
         else if(updatedRecordSize < length){
-            printf("Updating scenario 2\n");
+            //printf("Updating scenario 2\n");
             memcpy(buffer+offset, data, updatedRecordSize);
             //shift slot directory
             memmove(buffer  + offset + updatedRecordSize,
@@ -517,7 +517,7 @@ namespace PeterDB {
             int growSize = updatedRecordSize - length;
             //Scenario 3.1: no free space left on page
             if(growSize > currentFreeSpace){
-                printf("Updating scenario 3.1\n");
+                //printf("Updating scenario 3.1\n");
 
                 free(buffer);
                 RID newRID;
@@ -527,7 +527,7 @@ namespace PeterDB {
                 fileHandle.readPage(rid.pageNum, buffer);
 
                 //Convert record to tombstone
-                printf("Converted record to {%d},{%d}\n", newRID.pageNum, newRID.slotNum);
+                //printf("Converted record to {%d},{%d}\n", newRID.pageNum, newRID.slotNum);
                 memcpy(buffer + offset, &newRID.pageNum, sizeof(int));
                 memcpy(buffer + offset + 4, &newRID.slotNum, sizeof(short));
 
@@ -563,7 +563,7 @@ namespace PeterDB {
                 int dest = updatedRecordSize;
                 int src = offset;
                 int size = PAGE_SIZE - offset - length;
-                printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, size);
+                //printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, size);
                 //Shift Slot Directory to make space
                 memmove(buffer + offset + updatedRecordSize,
                         buffer  + offset + length,
@@ -698,7 +698,7 @@ namespace PeterDB {
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
         scannedRIDS.clear();
-        printf("Scanning...\n");
+        //printf("Scanning...\n");
         int size = 0;
         AttrType type;
 
@@ -721,15 +721,15 @@ namespace PeterDB {
                     {
                         //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
                         if (*(int *) value == *(int *) pointer) {
-                            printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)pointer, *(int*)value, type);
+                            //printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)pointer, *(int*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }
                     else if(type == TypeReal){
                         //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
-                        printRecord(recordDescriptor, data, std::cout);
+
                         if (*(float *) value == *(float *) pointer) {
-                            printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)pointer, *(float*)value, type);
+                           // printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)pointer, *(float*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }
@@ -737,7 +737,7 @@ namespace PeterDB {
                     {
                         //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
                         if (strcmp((char*)value, (char*)pointer) == 0){
-                            printf("Macth found:{%s}, {%s}, {%d}\n", (char *)pointer, (char*)value, type);
+                            //printf("Macth found:{%s}, {%s}, {%d}\n", (char *)pointer, (char*)value, type);
                             scannedRIDS.push_back(rid);
                         }
                     }
