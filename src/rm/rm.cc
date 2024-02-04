@@ -242,6 +242,7 @@ namespace PeterDB {
                              const void *value,
                              const std::vector<std::string> &attributeNames,
                              RM_ScanIterator &rm_ScanIterator) {
+
         if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
@@ -249,6 +250,8 @@ namespace PeterDB {
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             RBFM_ScanIterator Iterator = RBFM_ScanIterator();
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
+
+            rm_ScanIterator.rbfmIterator = Iterator;
             return 0;
         }
         else{
@@ -416,7 +419,9 @@ namespace PeterDB {
 
     RM_ScanIterator::~RM_ScanIterator() = default;
 
-    RC RM_ScanIterator::getNextTuple(RID &rid, void *data) { return RM_EOF; }
+    RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
+        rbfmIterator.getNextRecord(rid, data);
+    }
 
     RC RM_ScanIterator::close() { return 0; }
 

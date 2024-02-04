@@ -20,6 +20,9 @@ namespace PeterDB {
         RC getNextTuple(RID &rid, void *data);
 
         RC close();
+
+        RBFM_ScanIterator rbfmIterator;
+
     };
 
     // RM_IndexScanIterator is an iterator to go through index entries
