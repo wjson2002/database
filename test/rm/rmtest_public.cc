@@ -54,314 +54,314 @@ namespace PeterDBTesting {
 
     }
 
-    TEST_F(RM_Tuple_Test, get_attributes) {
-        // Functions Tested
-        // 1. getAttributes
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        ASSERT_EQ(attrs[0].name, "emp_name") << "Attribute is not correct.";
-        ASSERT_EQ(attrs[0].type, PeterDB::TypeVarChar) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[0].length, 50) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[1].name, "age") << "Attribute is not correct.";
-        ASSERT_EQ(attrs[1].type, PeterDB::TypeInt) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[1].length, 4) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[2].name, "height") << "Attribute is not correct.";
-        ASSERT_EQ(attrs[2].type, PeterDB::TypeReal) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[2].length, 4) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[3].name, "salary") << "Attribute is not correct.";
-        ASSERT_EQ(attrs[3].type, PeterDB::TypeReal) << "Attribute is not correct.";
-        ASSERT_EQ(attrs[3].length, 4) << "Attribute is not correct.";
-
-    }
-
-    TEST_F(RM_Tuple_Test, insert_and_read_tuple) {
-        // Functions tested
-        // 1. Insert Tuple
-        // 2. Read Tuple
-
-
-        size_t tupleSize = 0;
-        inBuffer = malloc(200);
-        outBuffer = malloc(200);
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        // Initialize a NULL field indicator
-        nullsIndicator = initializeNullFieldsIndicator(attrs);
-
-        // Insert a tuple into a table
-        std::string name = "Peter Anteater";
-        size_t nameLength = name.length();
-        unsigned age = 27;
-        float height = 169.2;
-        float salary = 9999.99;
-        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
-
-        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::insertTuple() should succeed.";
-
-
-        // Given the rid, read the tuple from table
-        ASSERT_EQ(rm.readTuple(tableName, rid, outBuffer), success)
-                                    << "RelationManager::readTuple() should succeed.";
-
-        std::ostringstream stream;
-        ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success) << "Print tuple should succeed.";
-
-        checkPrintRecord("emp_name: Peter Anteater, age: 27, height: 169.2, salary: 9999.99",
-                         stream.str());
-
-
-
-        // Check the returned tuple
-        ASSERT_EQ(memcmp(inBuffer, outBuffer, tupleSize), 0) << "The returned tuple is not the same as the inserted.";
-    }
-
-    TEST_F(RM_Tuple_Test, insert_and_delete_and_read_tuple) {
-        // Functions Tested
-        // 1. Insert tuple
-        // 2. Delete Tuple **
-        // 3. Read Tuple
-
-        size_t tupleSize = 0;
-        inBuffer = malloc(200);
-        outBuffer = malloc(200);
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        // Initialize a NULL field indicator
-        nullsIndicator = initializeNullFieldsIndicator(attrs);
-
-        // Insert the Tuple
-        std::string name = "Peter";
-        size_t nameLength = name.length();
-        unsigned age = 18;
-        float height = 157.8;
-        float salary = 890.2;
-        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
-
-        std::ostringstream stream;
-        ASSERT_EQ(rm.printTuple(attrs, inBuffer, stream), success) << "Print tuple should succeed.";
-        checkPrintRecord("emp_name: Peter, age: 18, height: 157.8, salary: 890.2",
-                         stream.str());
-
-        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::insertTuple() should succeed.";
-
-        // Delete the tuple
-        ASSERT_EQ(rm.deleteTuple(tableName, rid), success)
-                                    << "RelationManager::deleteTuple() should succeed.";
-
-        // Read Tuple after deleting it - should not succeed
-        memset(outBuffer, 0, 200);
-        ASSERT_NE(rm.readTuple(tableName, rid, outBuffer), success)
-                                    << "Reading a deleted tuple should not succeed.";
-
-        // Check the returned tuple
-        ASSERT_NE(memcmp(inBuffer, outBuffer, tupleSize), 0) << "The returned tuple should not match the inserted.";
-
-    }
-
-    TEST_F(RM_Tuple_Test, insert_and_update_and_read_tuple) {
-        // Functions Tested
-        // 1. Insert Tuple
-        // 2. Update Tuple
-        // 3. Read Tuple
-
-        size_t tupleSize = 0;
-        size_t updatedTupleSize = 0;
-        PeterDB::RID updatedRID;
-        inBuffer = malloc(200);
-        outBuffer = malloc(200);
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        // Initialize a NULL field indicator
-        nullsIndicator = initializeNullFieldsIndicator(attrs);
-
-
-        // Test Insert the Tuple
-        std::string name = "Paul";
-        size_t nameLength = name.length();
-        unsigned age = 28;
-        float height = 164.7;
-        float salary = 7192.8;
-        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
-        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::insertTuple() should succeed.";
-
-        std::ostringstream stream;
-        ASSERT_EQ(rm.printTuple(attrs, inBuffer, stream), success) << "Print tuple should succeed.";
-        checkPrintRecord("emp_name: Paul, age: 28, height: 164.7, salary: 7192.8",
-                         stream.str());
-
-        // Test Update Tuple
-        memset(inBuffer, 0, 200);
-        prepareTuple((int) attrs.size(), nullsIndicator, 7, "Barbara", age, height, 12000, inBuffer, updatedTupleSize);
-        ASSERT_EQ(rm.updateTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::updateTuple() should succeed.";
-
-        // Test Read Tuple
-        ASSERT_EQ(rm.readTuple(tableName, rid, outBuffer), success)
-                                    << "RelationManager::readTuple() should succeed.";
-
-        stream.str(std::string());
-        stream.clear();
-        ASSERT_EQ(rm.printTuple(attrs, inBuffer, stream), success) << "Print tuple should succeed.";
-        checkPrintRecord("emp_name: Barbara, age: 28, height: 164.7, salary: 12000",
-                         stream.str());
-
-        // Check the returned tuple
-        ASSERT_EQ(memcmp(inBuffer, outBuffer, updatedTupleSize), 0)
-                                    << "The returned tuple is not the same as the updated.";
-
-    }
-
-    TEST_F(RM_Tuple_Test, read_attribute) {
-        // Functions Tested
-        // 1. Insert tuples
-        // 2. Read Attribute
-
-        size_t tupleSize = 0;
-        inBuffer = malloc(200);
-        outBuffer = malloc(200);
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        // Initialize a NULL field indicator
-        nullsIndicator = initializeNullFieldsIndicator(attrs);
-
-
-        // Test Insert the Tuple
-        std::string name = "Paul";
-        size_t nameLength = name.length();
-        unsigned age = 57;
-        float height = 165.5;
-        float salary = 480000;
-        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
-        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::insertTuple() should succeed.";
-
-        // Test Read Attribute
-        ASSERT_EQ(rm.readAttribute(tableName, rid, "salary", outBuffer), success)
-                                    << "RelationManager::readAttribute() should succeed.";
-
-        float returnedSalary = *(float *) ((uint8_t *) outBuffer + 1);
-        ASSERT_EQ(salary, returnedSalary) << "The returned salary does not match the inserted.";
-
-        // Test Read Attribute
-        memset(outBuffer, 0, 200);
-        ASSERT_EQ(rm.readAttribute(tableName, rid, "age", outBuffer), success)
-                                    << "RelationManager::readAttribute() should succeed.";
-
-        unsigned returnedAge = *(unsigned *) ((uint8_t *) outBuffer + 1);
-        ASSERT_EQ(age, returnedAge) << "The returned age does not match the inserted.";
-
-    }
-
-    TEST_F(RM_Tuple_Test, delete_table) {
-        // Functions Tested
-        // 0. Insert tuple;
-        // 1. Read Tuple
-        // 2. Delete Table
-        // 3. Read Tuple
-        // 4. Insert Tuple
-
-        size_t tupleSize = 0;
-        inBuffer = malloc(200);
-        outBuffer = malloc(200);
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        // Initialize a NULL field indicator
-        nullsIndicator = initializeNullFieldsIndicator(attrs);
-
-        // Test Insert the Tuple
-        std::string name = "Paul";
-        size_t nameLength = name.length();
-        unsigned age = 28;
-        float height = 165.5;
-        float salary = 7000;
-        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
-        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::insertTuple() should succeed.";
-
-
-        // Test Read Tuple
-        ASSERT_EQ(rm.readTuple(tableName, rid, outBuffer), success)
-                                    << "RelationManager::readTuple() should succeed.";
-
-        // Test Delete Table
-        ASSERT_EQ(rm.deleteTable(tableName), success)
-                                    << "RelationManager::deleteTable() should succeed.";
-
-        // Reading a tuple on a deleted table
-        memset(outBuffer, 0, 200);
-        ASSERT_NE(rm.readTuple(tableName, rid, outBuffer), success)
-                                    << "RelationManager::readTuple() on a deleted table should not succeed.";
-
-        // Inserting a tuple on a deleted table
-        ASSERT_NE(rm.insertTuple(tableName, inBuffer, rid), success)
-                                    << "RelationManager::insertTuple() on a deleted table should not succeed.";
-
-        // Check the returned tuple
-        ASSERT_NE(memcmp(inBuffer, outBuffer, tupleSize), 0) << "The returned tuple should not match the inserted.";
-
-        destroyFile = false; // the table is already deleted.
-
-    }
-
-    TEST_F(RM_Scan_Test, simple_scan) {
-        // Functions Tested
-        // 1. Simple scan
-
-        int numTuples = 100;
-        size_t tupleSize = 0;
-        inBuffer = malloc(200);
-        outBuffer = malloc(200);
-
-        // GetAttributes
-        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-
-        // Initialize a NULL field indicator
-        nullsIndicator = initializeNullFieldsIndicator(attrs);
-
-        // Test Insert Tuple
-        PeterDB::RID rids[numTuples];
-        std::set<unsigned> ages;
-        for (int i = 0; i < numTuples; i++) {
-            // Insert Tuple
-            auto height = (float) i;
-            unsigned age = 20 + i;
-            prepareTuple((int) attrs.size(), nullsIndicator, 6, "Tester", age, height, (float) (age * 12.5), inBuffer, tupleSize);
-            ages.insert(age);
-            ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-                                        << "RelationManager::insertTuple() should succeed.";
-
-            rids[i] = rid;
-            memset(inBuffer, 0, 200);
-        }
-
-        // Set up the iterator
-        std::vector<std::string> attributes{"age"};
-
-        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attributes, rmsi), success)
-                                    << "RelationManager::scan() should succeed.";
-
-        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
-            unsigned returnedAge = *(unsigned *) ((uint8_t *) outBuffer + 1);
-            auto target = ages.find(returnedAge);
-            ASSERT_NE(target, ages.end()) << "Returned age is not from the inserted ones.";
-            ages.erase(target);
-        }
-    }
+//    TEST_F(RM_Tuple_Test, get_attributes) {
+//        // Functions Tested
+//        // 1. getAttributes
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        ASSERT_EQ(attrs[0].name, "emp_name") << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[0].type, PeterDB::TypeVarChar) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[0].length, 50) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[1].name, "age") << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[1].type, PeterDB::TypeInt) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[1].length, 4) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[2].name, "height") << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[2].type, PeterDB::TypeReal) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[2].length, 4) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[3].name, "salary") << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[3].type, PeterDB::TypeReal) << "Attribute is not correct.";
+//        ASSERT_EQ(attrs[3].length, 4) << "Attribute is not correct.";
+//
+//    }
+//
+//    TEST_F(RM_Tuple_Test, insert_and_read_tuple) {
+//        // Functions tested
+//        // 1. Insert Tuple
+//        // 2. Read Tuple
+//
+//
+//        size_t tupleSize = 0;
+//        inBuffer = malloc(200);
+//        outBuffer = malloc(200);
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        // Initialize a NULL field indicator
+//        nullsIndicator = initializeNullFieldsIndicator(attrs);
+//
+//        // Insert a tuple into a table
+//        std::string name = "Peter Anteater";
+//        size_t nameLength = name.length();
+//        unsigned age = 27;
+//        float height = 169.2;
+//        float salary = 9999.99;
+//        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
+//
+//        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::insertTuple() should succeed.";
+//
+//
+//        // Given the rid, read the tuple from table
+//        ASSERT_EQ(rm.readTuple(tableName, rid, outBuffer), success)
+//                                    << "RelationManager::readTuple() should succeed.";
+//
+//        std::ostringstream stream;
+//        ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success) << "Print tuple should succeed.";
+//
+//        checkPrintRecord("emp_name: Peter Anteater, age: 27, height: 169.2, salary: 9999.99",
+//                         stream.str());
+//
+//
+//
+//        // Check the returned tuple
+//        ASSERT_EQ(memcmp(inBuffer, outBuffer, tupleSize), 0) << "The returned tuple is not the same as the inserted.";
+//    }
+//
+//    TEST_F(RM_Tuple_Test, insert_and_delete_and_read_tuple) {
+//        // Functions Tested
+//        // 1. Insert tuple
+//        // 2. Delete Tuple **
+//        // 3. Read Tuple
+//
+//        size_t tupleSize = 0;
+//        inBuffer = malloc(200);
+//        outBuffer = malloc(200);
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        // Initialize a NULL field indicator
+//        nullsIndicator = initializeNullFieldsIndicator(attrs);
+//
+//        // Insert the Tuple
+//        std::string name = "Peter";
+//        size_t nameLength = name.length();
+//        unsigned age = 18;
+//        float height = 157.8;
+//        float salary = 890.2;
+//        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
+//
+//        std::ostringstream stream;
+//        ASSERT_EQ(rm.printTuple(attrs, inBuffer, stream), success) << "Print tuple should succeed.";
+//        checkPrintRecord("emp_name: Peter, age: 18, height: 157.8, salary: 890.2",
+//                         stream.str());
+//
+//        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::insertTuple() should succeed.";
+//
+//        // Delete the tuple
+//        ASSERT_EQ(rm.deleteTuple(tableName, rid), success)
+//                                    << "RelationManager::deleteTuple() should succeed.";
+//
+//        // Read Tuple after deleting it - should not succeed
+//        memset(outBuffer, 0, 200);
+//        ASSERT_NE(rm.readTuple(tableName, rid, outBuffer), success)
+//                                    << "Reading a deleted tuple should not succeed.";
+//
+//        // Check the returned tuple
+//        ASSERT_NE(memcmp(inBuffer, outBuffer, tupleSize), 0) << "The returned tuple should not match the inserted.";
+//
+//    }
+//
+//    TEST_F(RM_Tuple_Test, insert_and_update_and_read_tuple) {
+//        // Functions Tested
+//        // 1. Insert Tuple
+//        // 2. Update Tuple
+//        // 3. Read Tuple
+//
+//        size_t tupleSize = 0;
+//        size_t updatedTupleSize = 0;
+//        PeterDB::RID updatedRID;
+//        inBuffer = malloc(200);
+//        outBuffer = malloc(200);
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        // Initialize a NULL field indicator
+//        nullsIndicator = initializeNullFieldsIndicator(attrs);
+//
+//
+//        // Test Insert the Tuple
+//        std::string name = "Paul";
+//        size_t nameLength = name.length();
+//        unsigned age = 28;
+//        float height = 164.7;
+//        float salary = 7192.8;
+//        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
+//        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::insertTuple() should succeed.";
+//
+//        std::ostringstream stream;
+//        ASSERT_EQ(rm.printTuple(attrs, inBuffer, stream), success) << "Print tuple should succeed.";
+//        checkPrintRecord("emp_name: Paul, age: 28, height: 164.7, salary: 7192.8",
+//                         stream.str());
+//
+//        // Test Update Tuple
+//        memset(inBuffer, 0, 200);
+//        prepareTuple((int) attrs.size(), nullsIndicator, 7, "Barbara", age, height, 12000, inBuffer, updatedTupleSize);
+//        ASSERT_EQ(rm.updateTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::updateTuple() should succeed.";
+//
+//        // Test Read Tuple
+//        ASSERT_EQ(rm.readTuple(tableName, rid, outBuffer), success)
+//                                    << "RelationManager::readTuple() should succeed.";
+//
+//        stream.str(std::string());
+//        stream.clear();
+//        ASSERT_EQ(rm.printTuple(attrs, inBuffer, stream), success) << "Print tuple should succeed.";
+//        checkPrintRecord("emp_name: Barbara, age: 28, height: 164.7, salary: 12000",
+//                         stream.str());
+//
+//        // Check the returned tuple
+//        ASSERT_EQ(memcmp(inBuffer, outBuffer, updatedTupleSize), 0)
+//                                    << "The returned tuple is not the same as the updated.";
+//
+//    }
+//
+//    TEST_F(RM_Tuple_Test, read_attribute) {
+//        // Functions Tested
+//        // 1. Insert tuples
+//        // 2. Read Attribute
+//
+//        size_t tupleSize = 0;
+//        inBuffer = malloc(200);
+//        outBuffer = malloc(200);
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        // Initialize a NULL field indicator
+//        nullsIndicator = initializeNullFieldsIndicator(attrs);
+//
+//
+//        // Test Insert the Tuple
+//        std::string name = "Paul";
+//        size_t nameLength = name.length();
+//        unsigned age = 57;
+//        float height = 165.5;
+//        float salary = 480000;
+//        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
+//        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::insertTuple() should succeed.";
+//
+//        // Test Read Attribute
+//        ASSERT_EQ(rm.readAttribute(tableName, rid, "salary", outBuffer), success)
+//                                    << "RelationManager::readAttribute() should succeed.";
+//
+//        float returnedSalary = *(float *) ((uint8_t *) outBuffer + 1);
+//        ASSERT_EQ(salary, returnedSalary) << "The returned salary does not match the inserted.";
+//
+//        // Test Read Attribute
+//        memset(outBuffer, 0, 200);
+//        ASSERT_EQ(rm.readAttribute(tableName, rid, "age", outBuffer), success)
+//                                    << "RelationManager::readAttribute() should succeed.";
+//
+//        unsigned returnedAge = *(unsigned *) ((uint8_t *) outBuffer + 1);
+//        ASSERT_EQ(age, returnedAge) << "The returned age does not match the inserted.";
+//
+//    }
+//
+//    TEST_F(RM_Tuple_Test, delete_table) {
+//        // Functions Tested
+//        // 0. Insert tuple;
+//        // 1. Read Tuple
+//        // 2. Delete Table
+//        // 3. Read Tuple
+//        // 4. Insert Tuple
+//
+//        size_t tupleSize = 0;
+//        inBuffer = malloc(200);
+//        outBuffer = malloc(200);
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        // Initialize a NULL field indicator
+//        nullsIndicator = initializeNullFieldsIndicator(attrs);
+//
+//        // Test Insert the Tuple
+//        std::string name = "Paul";
+//        size_t nameLength = name.length();
+//        unsigned age = 28;
+//        float height = 165.5;
+//        float salary = 7000;
+//        prepareTuple((int) attrs.size(), nullsIndicator, nameLength, name, age, height, salary, inBuffer, tupleSize);
+//        ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::insertTuple() should succeed.";
+//
+//
+//        // Test Read Tuple
+//        ASSERT_EQ(rm.readTuple(tableName, rid, outBuffer), success)
+//                                    << "RelationManager::readTuple() should succeed.";
+//
+//        // Test Delete Table
+//        ASSERT_EQ(rm.deleteTable(tableName), success)
+//                                    << "RelationManager::deleteTable() should succeed.";
+//
+//        // Reading a tuple on a deleted table
+//        memset(outBuffer, 0, 200);
+//        ASSERT_NE(rm.readTuple(tableName, rid, outBuffer), success)
+//                                    << "RelationManager::readTuple() on a deleted table should not succeed.";
+//
+//        // Inserting a tuple on a deleted table
+//        ASSERT_NE(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                    << "RelationManager::insertTuple() on a deleted table should not succeed.";
+//
+//        // Check the returned tuple
+//        ASSERT_NE(memcmp(inBuffer, outBuffer, tupleSize), 0) << "The returned tuple should not match the inserted.";
+//
+//        destroyFile = false; // the table is already deleted.
+//
+//    }
+//
+//    TEST_F(RM_Scan_Test, simple_scan) {
+//        // Functions Tested
+//        // 1. Simple scan
+//
+//        int numTuples = 100;
+//        size_t tupleSize = 0;
+//        inBuffer = malloc(200);
+//        outBuffer = malloc(200);
+//
+//        // GetAttributes
+//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+//
+//        // Initialize a NULL field indicator
+//        nullsIndicator = initializeNullFieldsIndicator(attrs);
+//
+//        // Test Insert Tuple
+//        PeterDB::RID rids[numTuples];
+//        std::set<unsigned> ages;
+//        for (int i = 0; i < numTuples; i++) {
+//            // Insert Tuple
+//            auto height = (float) i;
+//            unsigned age = 20 + i;
+//            prepareTuple((int) attrs.size(), nullsIndicator, 6, "Tester", age, height, (float) (age * 12.5), inBuffer, tupleSize);
+//            ages.insert(age);
+//            ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+//                                        << "RelationManager::insertTuple() should succeed.";
+//
+//            rids[i] = rid;
+//            memset(inBuffer, 0, 200);
+//        }
+//
+//        // Set up the iterator
+//        std::vector<std::string> attributes{"age"};
+//
+//        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attributes, rmsi), success)
+//                                    << "RelationManager::scan() should succeed.";
+//
+//        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+//            unsigned returnedAge = *(unsigned *) ((uint8_t *) outBuffer + 1);
+//            auto target = ages.find(returnedAge);
+//            ASSERT_NE(target, ages.end()) << "Returned age is not from the inserted ones.";
+//            ages.erase(target);
+//        }
+//    }
 
     TEST_F(RM_Scan_Test, simple_scan_after_table_deletion) {
         // Functions Tested

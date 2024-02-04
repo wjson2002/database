@@ -720,23 +720,23 @@ namespace PeterDB {
                     if(type == TypeInt)
                     {
                         //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
-                        if (*(int *) value == *(int *) pointer) {
-                            //printf("Macth found:{%d}, {%d}, {%d}\n", *(int*)pointer, *(int*)value, type);
+                        if(compareNums( *(int *)value,*(int *)pointer, compOp)){
                             scannedRIDS.push_back(rid);
                         }
                     }
                     else if(type == TypeReal){
                         //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
+                        if(compareNums( *(float *)value,*(float *)pointer, compOp)){
+                            // printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)pointer, *(float*)value, type);
 
-                        if (*(float *) value == *(float *) pointer) {
-                           // printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)pointer, *(float*)value, type);
                             scannedRIDS.push_back(rid);
                         }
+
                     }
                     else if(type == TypeVarChar)
                     {
                         //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
-                        if (strcmp((char*)value, (char*)pointer) == 0){
+                        if (compareString((char*)value, (char*)pointer, compOp)){
                             //printf("Macth found:{%s}, {%s}, {%d}\n", (char *)pointer, (char*)value, type);
                             scannedRIDS.push_back(rid);
                         }
@@ -747,6 +747,9 @@ namespace PeterDB {
 
         return 0;
     }
+
+
+
     RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data) {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
 
@@ -793,6 +796,28 @@ namespace PeterDB {
 
         }
         currentRID = recordRIDS.begin();
+    }
+    template <typename T>
+    bool RecordBasedFileManager::compareNums(T value1, T value2, CompOp compOp){
+        if (compOp == EQ_OP){return (value1 == value2);}
+        else if (compOp == LT_OP){return (value1 < value2);}
+        else if (compOp == LE_OP){return (value1 <= value2);}
+        else if (compOp == GT_OP){return (value1 > value2);}
+        else if (compOp == GE_OP){return (value1 >= value2);}
+        else if (compOp == NE_OP){return (value1 != value2);}
+        else if (compOp == NO_OP){return true;}
+        else {return false;}
+    }
+
+    bool RecordBasedFileManager::compareString(char* value1, char* value2, CompOp compOp){
+        if (compOp == EQ_OP){return (strcmp(value1, value2) == 0);}
+        else if (compOp == LT_OP){return (strcmp(value1, value2) < 0);}
+        else if (compOp == LE_OP){return (strcmp(value1, value2) <= 0);}
+        else if (compOp == GT_OP){return (strcmp(value1, value2) > 0);}
+        else if (compOp == GE_OP){return (strcmp(value1, value2) >= 0);}
+        else if (compOp == NE_OP){return (strcmp(value1, value2) != 0);}
+        else if (compOp == NO_OP){return true;}
+        else {return false;}
     }
 } // namespace PeterDB
 
