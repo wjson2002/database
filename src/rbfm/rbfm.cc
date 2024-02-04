@@ -104,7 +104,7 @@ namespace PeterDB {
             std::memmove(buffer+offsetPointer, data, recordSize);
             std::memmove(buffer+offsetPointer, data, recordSize);
             fileHandle.writePage(rid.pageNum, buffer);
-            printf("FreeSpace: {%d} recordSize:{%d} Inserted to {%d}, {%d}\n", freeSpace,recordSize, rid.pageNum, rid.slotNum);
+            //printf("FreeSpace: {%d} recordSize:{%d} Inserted to {%d}, {%d}\n", freeSpace,recordSize, rid.pageNum, rid.slotNum);
             return 0;
 
         }
@@ -534,23 +534,25 @@ namespace PeterDB {
                 //printf("Converted record to {%d},{%d}\n", newRID.pageNum, newRID.slotNum);
                 memcpy(buffer + offset, &newRID.pageNum, sizeof(int));
                 memcpy(buffer + offset + 4, &newRID.slotNum, sizeof(short));
+                if(slotNumber < numberOfRecords){
+                    int lengthDifference = abs(6 - length);
+                    // shift all other records
+                    memmove(buffer + offset + MIN_RECORD_SIZE,
+                            buffer + offset + length,
+                            PAGE_SIZE - offset - lengthDifference);
 
-                int lengthDifference = abs(6 - length);
-                // shift all other records
-                memmove(buffer + offset + MIN_RECORD_SIZE,
-                        buffer + offset + length,
-                        PAGE_SIZE - offset - lengthDifference);
+                    //update offsets for shifted slots
+                    for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+                        int tempLen = 0;
+                        memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
+                        memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
 
-                //update offsets for shifted slots
-                for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
-                    int tempLen = 0;
-                    memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
-                    memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
+                        if(tempLen != 0 && tempLen <= currentFreeSpace){
+                            unsigned newOffset = offset - lengthDifference;
+                            memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                        }
+                }
 
-                    if(tempLen != 0 && tempLen <= currentFreeSpace){
-                        unsigned newOffset = offset - lengthDifference;
-                        memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
-                    }
                 }
                 //Update slot directory length to -1 to indicate tombstone record
                 int tombstone = -1;

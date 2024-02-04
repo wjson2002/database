@@ -442,11 +442,7 @@ namespace PeterDBTesting {
 
             ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
                                         << "RelationManager::insertTuple() should succeed.";
-            if(i == 0){
-                printf("Tuple 0:");
-                rm.printTuple(attrs, inBuffer,std::cout);
-                printf("Inserted TUple Rid {%d}, {%d}", rid.pageNum, rid.slotNum);
-            }
+
             rids.emplace_back(rid);
             sizes.emplace_back(size);
         }
@@ -480,7 +476,7 @@ namespace PeterDBTesting {
         for (int i = 0; i < numTuples; i++) {
             memset(inBuffer, 0, bufSize);
             memset(outBuffer, 0, bufSize);
-            printf("Read TUple Rid {%d}, {%d}", rids[i].pageNum, rids[i].slotNum);
+
             ASSERT_EQ(rm.readTuple(tableName, rids[i], outBuffer), success)
                                         << "RelationManager::readTuple() should succeed.";
 
