@@ -48,7 +48,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
-        //printf("Deleting Catalog\n");
+        printf("Deleting Catalog\n");
 
         if(CatalogActive == false){
             //printf("Catalog not active\n");
@@ -58,8 +58,8 @@ namespace PeterDB {
             RecordBasedFileManager::instance().destroyFile(i.first);
         }
         this->CatalogActive = false;
-        //tableNameToIdMap.clear();
-        //tableIDmap.clear();
+        tableNameToIdMap.clear();
+        tableIDmap.clear();
 
         return 0;
     }
