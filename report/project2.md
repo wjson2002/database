@@ -10,12 +10,12 @@
 
 ### 2. Meta-data
 - Show your meta-data design (Tables and Columns table) and information about each column.
-
+Design of tables and columns is similar to ones provided during lectures. 
 
 
 ### 3. Internal Record Format (in case you have changed from P1, please re-enter here)
 - Show your record format design.
-
+Same as P1.
 
 
 - Describe how you store a null field.
@@ -32,7 +32,7 @@
 
 ### 4. Page Format (in case you have changed from P1, please re-enter here)
 - Show your page format design.
-
+Same as P1
 
 
 - Explain your slot directory design if applicable.
@@ -41,7 +41,7 @@
 
 ### 5. Page Management (in case you have changed from P1, please re-enter here)
 - How many hidden pages are utilized in your design?
-
+Same as P1
 
 
 - Show your hidden page(s) format design if applicable
@@ -76,7 +76,7 @@
 
 ### 8. Member contribution (for team of two)
 - Explain how you distribute the workload in team.
-
+Solo work.
 
 
 ### 9. Other (optional)
