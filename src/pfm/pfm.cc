@@ -21,7 +21,7 @@ namespace PeterDB {
 
     RC PagedFileManager::createFile(const std::string &fileName) {
         //MAKE SURE TO CLOSE FILE AFTER OPENING
-        printf("Start Creating File");
+
         struct stat fileInfo{};
 
         FILE* file;
@@ -33,7 +33,7 @@ namespace PeterDB {
             return -1;
         }
         else{
-            printf("file created... now closing\n");
+            //printf("file created... now closing\n");
             fclose(file);
         }
         return 0;
@@ -50,20 +50,21 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
-        printf("Start OpenFile\n");
+
         FILE* file = fopen(fileName.c_str(), "r+");
+        fileHandle.myFile = file;
         fileHandle.initFile(file);
         unsigned test = -1;
         fseek(file,0,SEEK_SET);
         fread(&test ,sizeof(unsigned), 1, file);
-        printf("OPEN File with: pages: {%d}}\n", test);
+       // printf("OPEN File with: pages: {%d}}\n", test);
         if(file == nullptr)
         {
             perror("File failed to open");
             return -1;
         }
         else {
-            printf("File Fopened success: %s \n", fileName.c_str());
+            //printf("File Fopened success: %s \n", fileName.c_str());
             return 0;
         }
     }
@@ -73,7 +74,7 @@ namespace PeterDB {
         fileHandle.flushFile();
 
         int result = fclose(file);
-        printf("file closed\n");
+        //printf("file closed\n");
         return 0;
     }
 
@@ -179,19 +180,20 @@ namespace PeterDB {
     }
 
     void FileHandle::loadFile(){
-        printf("Loading File...\n");
+       // printf("Loading File...");
 
         fseek(myFile,0,SEEK_SET);
         fread(&numOfPages, sizeof(unsigned), 1, myFile);
-        printf("Page Count:{%d} ", numOfPages);
+       // printf("Page Count:{%d} ", numOfPages);
 
         fread(&readPageCounter, sizeof(unsigned), 1, myFile);
-        printf("Read Count:{%d} ", readPageCounter);
+       // printf("Read Count:{%d} ", readPageCounter);
 
         fread(&writePageCounter, sizeof(unsigned), 1, myFile);
-        printf("Write Count: {%d} ", writePageCounter);
+       // printf("Write Count: {%d} ", writePageCounter);
 
-        printf("....Loading File Finished...\n");
+        fread(&appendPageCounter, sizeof(unsigned), 1, myFile);
+       // printf("....Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
         fseek(myFile,0,SEEK_SET);
@@ -208,13 +210,13 @@ namespace PeterDB {
 
         fflush(myFile);
 
-        printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
+       // printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
     }
 
     void FileHandle::initPage() {
         if(myFile != nullptr){
             fseek(myFile,0,SEEK_END);
-            printf("calling init: file size: %ld\n", ftell(myFile));
+            //printf("calling init: file size: %ld\n", ftell(myFile));
 
 
             fseek(myFile,0,SEEK_SET);

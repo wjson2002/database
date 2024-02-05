@@ -67,6 +67,7 @@ namespace PeterDB {
         RC close() { return 0;};
         std::vector<RID>::iterator currentRID = recordRIDS.begin();
         std::vector<RID> recordRIDS;
+        std::string tableName;
         FileHandle fileHandle = fileHandle;
         std::vector<Attribute> recordDescriptor = recordDescriptor;
 
@@ -152,7 +153,9 @@ namespace PeterDB {
                 RBFM_ScanIterator &rbfm_ScanIterator);
 
         std::vector<RID> scannedRIDS;
-
+        template <typename T>
+        bool compareNums(T value1, T value2, const CompOp compOp);
+        bool compareString(char* value1, char* value2, CompOp compOp);
 
     protected:
         RecordBasedFileManager();                                                   // Prevent construction
