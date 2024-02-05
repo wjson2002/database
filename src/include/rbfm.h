@@ -67,6 +67,7 @@ namespace PeterDB {
         RC close() { return 0;};
         std::vector<RID>::iterator currentRID = recordRIDS.begin();
         std::vector<RID> recordRIDS;
+        std::string tableName;
         FileHandle fileHandle = fileHandle;
         std::vector<Attribute> recordDescriptor = recordDescriptor;
 

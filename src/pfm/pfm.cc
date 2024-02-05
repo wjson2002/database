@@ -52,6 +52,7 @@ namespace PeterDB {
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
 
         FILE* file = fopen(fileName.c_str(), "r+");
+        fileHandle.myFile = file;
         fileHandle.initFile(file);
         unsigned test = -1;
         fseek(file,0,SEEK_SET);
