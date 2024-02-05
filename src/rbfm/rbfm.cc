@@ -235,8 +235,11 @@ namespace PeterDB {
         }
         char *readBuffer = (char*) malloc(PAGE_SIZE);
         fileHandle.readPage(rid.pageNum,readBuffer);
+        char numOfRecords;
+        memmove(&(numOfRecords), readBuffer + 2, sizeof(char));
         int totalOffset = 0;
         int length;
+
         memcpy(&length,
                readBuffer + 2 + (sizeof(int)) + (rid.slotNum) * 8 , sizeof(int));
         memcpy(&totalOffset,
@@ -260,11 +263,14 @@ namespace PeterDB {
             free(readBuffer);
             readRecord(fileHandle, recordDescriptor, newRID, data);
 
-        }else{
+        }else if (rid.slotNum <= (int)numOfRecords){
             memcpy(data, readBuffer+totalOffset, length);
 
             free(readBuffer);
             return 0;
+        }
+        else{
+            return -1;
         }
 
     }
