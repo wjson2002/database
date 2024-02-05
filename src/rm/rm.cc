@@ -58,8 +58,8 @@ namespace PeterDB {
             RecordBasedFileManager::instance().destroyFile(i.first);
         }
         this->CatalogActive = false;
-        tableNameToIdMap.clear();
-        tableIDmap.clear();
+        //tableNameToIdMap.clear();
+        //tableIDmap.clear();
 
         return 0;
     }

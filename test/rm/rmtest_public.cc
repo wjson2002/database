@@ -501,8 +501,8 @@ namespace PeterDBTesting {
         // 2. read tuple
 
         int numTuples = 100;
-        unsigned numTuplesToUpdate1 = 10;
-        unsigned numTuplesToUpdate2 = 10;
+        unsigned numTuplesToUpdate1 = 20;
+        unsigned numTuplesToUpdate2 = 20;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
