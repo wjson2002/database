@@ -18,7 +18,7 @@ namespace PeterDB {
 
         // "data" follows the same format as RelationManager::insertTuple()
         RC getNextTuple(RID &rid, void *data);
-
+        std::vector<RID> scannedRIDS;
         RC close();
 
         RBFM_ScanIterator rbfmIterator;
