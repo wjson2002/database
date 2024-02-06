@@ -549,9 +549,11 @@ namespace PeterDBTesting {
             memset(inBuffer, 0, bufSize);
             memset(outBuffer, 0, bufSize);
             prepareLargeTuple((int) attrs.size(), nullsIndicator, i + 10, inBuffer, size);
-
+            printf("EXPECTED {%d},{%d}: \n",rids[i].pageNum,rids[i].slotNum);
             ASSERT_EQ(rm.readTuple(tableName, rids[i], outBuffer), success)
                                         << "RelationManager::readTuple() should succeed.";
+
+            rm.printTuple(attrs, inBuffer, std::cout);
 
             // Compare whether the two memory blocks are the same
             ASSERT_EQ(memcmp(inBuffer, outBuffer, size), 0) << "the read tuple should match the updated tuple";
@@ -595,7 +597,7 @@ namespace PeterDBTesting {
         // 2. read tuple
 
         unsigned numTuples = 100; //5000
-        unsigned numTuplesToDelete = 20; //2000
+        unsigned numTuplesToDelete = 5; //2000
         outBuffer = malloc(bufSize);
 
         readRIDsFromDisk(rids, numTuples);

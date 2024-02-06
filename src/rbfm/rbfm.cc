@@ -253,19 +253,22 @@ namespace PeterDB {
 
         //Read tombstone record
         if(length == -1){
-            printf("Record is in tombstone\n");
+
             RID newRID;
             memcpy(&newRID.pageNum,
                    readBuffer + totalOffset, sizeof(int));
             memcpy(&newRID.slotNum,
                    readBuffer + totalOffset +4, sizeof(short));
-
+            printf("Record is in tombstone, going to {%d}, {%d}\n", newRID.pageNum, newRID.slotNum);
             free(readBuffer);
             readRecord(fileHandle, recordDescriptor, newRID, data);
+            printf("Record found\n");
+            printRecord(recordDescriptor, data, std::cout);
+
+            return 0;
 
         }else if (rid.slotNum <= (int)numOfRecords){
             memcpy(data, readBuffer+totalOffset, length);
-
             free(readBuffer);
             return 0;
         }
@@ -457,7 +460,7 @@ namespace PeterDB {
             memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
             memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
 
-            if(tempLen != 0 && tempLen <= currentFileSize){
+            if((tempLen > 0 && tempLen <= PAGE_SIZE) || tempLen == -1){
                 unsigned newOffset = offset - length;
                 memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
                 //printf("Moving dest %d to src %d\n",offset,offset-length);
@@ -497,7 +500,7 @@ namespace PeterDB {
 
         //Updated record information
         int updatedRecordSize = getRecordSize(recordDescriptor, data);
-        //printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
+        printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
         //Scenario 1: Updated Record Size = Old Record Size
         if(length == updatedRecordSize){
             //printf("Updating scenario 1\n");
@@ -508,12 +511,25 @@ namespace PeterDB {
         }
             //Scenario 2: Updated Record Size < Old Record Size
         else if(updatedRecordSize < length){
-            //printf("Updating scenario 2\n");
+            printf("Updating scenario 2\n");
             memcpy(buffer+offset, data, updatedRecordSize);
             //shift slot directory
             memmove(buffer  + offset + updatedRecordSize,
                     buffer  + offset + length,
                     PAGE_SIZE  - offset - length);
+
+            for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+                int tempLen = 0;
+                memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
+                memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
+
+                if((tempLen > 0 && tempLen <= PAGE_SIZE) || tempLen == -1){
+                    unsigned newOffset = offset - length + updatedRecordSize;
+                    memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                    printf("Moving slot{%d} of size{%d} from %d to  %d\n",i,tempLen, offset,newOffset);
+                }
+            }
+
             //update free space
             int newFreeSpace = currentFreeSpace + length - updatedRecordSize;
             memcpy(buffer, &newFreeSpace, sizeof(short));
@@ -527,7 +543,7 @@ namespace PeterDB {
             int growSize = updatedRecordSize - length;
             //Scenario 3.1: no free space left on page
             if(growSize > currentFreeSpace){
-                //printf("Updating scenario 3.1\n");
+                printf("Updating scenario 3.1\n");
 
                 free(buffer);
                 RID newRID;
@@ -537,7 +553,7 @@ namespace PeterDB {
                 fileHandle.readPage(rid.pageNum, buffer);
 
                 //Convert record to tombstone
-                //printf("Converted record to {%d},{%d}\n", newRID.pageNum, newRID.slotNum);
+                printf("Converted record to {%d},{%d}\n", newRID.pageNum, newRID.slotNum);
                 memcpy(buffer + offset, &newRID.pageNum, sizeof(int));
                 memcpy(buffer + offset + 4, &newRID.slotNum, sizeof(short));
                 if(slotNumber < numberOfRecords){
@@ -557,8 +573,7 @@ namespace PeterDB {
                             unsigned newOffset = offset - lengthDifference;
                             memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
                         }
-                }
-
+                    }
                 }
                 //Update slot directory length to -1 to indicate tombstone record
                 int tombstone = -1;
@@ -575,10 +590,10 @@ namespace PeterDB {
                 int dest = updatedRecordSize;
                 int src = offset;
                 int size = PAGE_SIZE - offset - length;
-                //printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, size);
+                printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, updatedRecordSize);
                 //Shift Slot Directory to make space
                 memmove(buffer + offset + updatedRecordSize,
-                        buffer  + offset + length,
+                        buffer + offset + length,
                         PAGE_SIZE - offset - updatedRecordSize);
                 //update offsets
                 for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
@@ -587,14 +602,14 @@ namespace PeterDB {
                     memmove(&tempOff, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
                     memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
 
-                    if(tempLen != 0 && tempLen <= currentFreeSpace){
+                    if((tempLen > 0 && tempLen < PAGE_SIZE) || tempLen == -1){
                         unsigned newOffset = tempOff + growSize;
                         memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
                     }
                 }
 
                 // copy data to buffer
-                memcpy(buffer  + offset, data, updatedRecordSize);
+                memcpy(buffer + offset, data, updatedRecordSize);
 
                 //Update size of slot directory
                 int newFreeSpace = currentFreeSpace - growSize;
@@ -602,7 +617,7 @@ namespace PeterDB {
 
                 //Update slot directory
                 memcpy(buffer + 2 + (rid.slotNum * 8) + sizeof(int) , &updatedRecordSize, sizeof(short));
-
+                printf("3.1 Page info {%d} Updated to: {%d}\n", newFreeSpace, updatedRecordSize);
                 fileHandle.writePage(rid.pageNum, buffer);
                 free(buffer);
                 return 0;
