@@ -269,6 +269,7 @@ namespace PeterDB {
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
 
             rm_ScanIterator.rbfmIterator = Iterator;
+            rm_ScanIterator.scannedRIDS = Iterator.scannedRIDS;
             return 0;
         }
         else{
@@ -412,7 +413,7 @@ namespace PeterDB {
 
         std::vector<Attribute> result;
 
-        for(auto RID : rbfm.scannedRIDS){
+        for(auto RID : Iterator.scannedRIDS){
             void* temp[150];
             //printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
             rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
