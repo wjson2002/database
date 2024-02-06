@@ -269,7 +269,10 @@ namespace PeterDB {
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
 
             rm_ScanIterator.rbfmIterator = Iterator;
+            rm_ScanIterator.tableName = tableName;
             rm_ScanIterator.scannedRIDS = Iterator.scannedRIDS;
+            rm_ScanIterator.currentRID = rm_ScanIterator.scannedRIDS.begin();
+            rm_ScanIterator.attrName = conditionAttribute;
             return 0;
         }
         else{
@@ -441,14 +444,28 @@ namespace PeterDB {
     RM_ScanIterator::~RM_ScanIterator() = default;
 
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
-        int result = rbfmIterator.getNextRecord(rid, data);
-        return result;
+        for(auto i : scannedRIDS){
+            printf("{%d}{%d}\n",i.pageNum,i.slotNum);
+        }
+        if (currentRID == scannedRIDS.end()) {
+            return RBFM_EOF;
+        }
+        RecordBasedFileManager& r = RecordBasedFileManager::instance();
+        RelationManager& rm = RelationManager::instance();
+
+        int tableID = rm.tableNameToIdMap[tableName];
+        FileHandle fh = rm.tableIDmap[tableID];
+        std::vector<Attribute> recordD = rm.getRecordDescriptor(tableID);
+        r.readAttribute(fh, recordD, *currentRID, attrName, data);
+        currentRID++;
+
+        return -1;
     }
 
     RC RM_ScanIterator::close() {
         rbfmIterator.close();
-        return 0; }
-
+        return 0;
+    }
 
 
     // Extra credit work
