@@ -19,9 +19,7 @@ namespace PeterDB {
         // "data" follows the same format as RelationManager::insertTuple()
         RC getNextTuple(RID &rid, void *data);
         std::vector<RID> scannedRIDS;
-        std::vector<RID>::iterator currentRID = scannedRIDS.begin();
-        std::string tableName;
-        std::string attrName;
+
         RC close();
 
         RBFM_ScanIterator rbfmIterator;
@@ -97,7 +95,7 @@ namespace PeterDB {
                      RM_IndexScanIterator &rm_IndexScanIterator);
 
 
-
+    private:
         RC initCatalogTables();
         void* convert(std::vector<Attribute>& recordDescriptor, const std::string data[]);
         Attribute convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data);

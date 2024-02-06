@@ -672,6 +672,7 @@ namespace PeterDB {
                 if(bitArray[index] == 1){
                     index ++;
                     memset(data, 1, 1);
+                    return 0;
                 }
                 else{
                     memset(data, 0, 1);
@@ -725,7 +726,7 @@ namespace PeterDB {
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
         scannedRIDS.clear();
-        //printf("Scanning...\n");
+
         int size = 0;
         AttrType type;
 

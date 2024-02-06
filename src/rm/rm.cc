@@ -36,7 +36,7 @@ namespace PeterDB {
 
     RC RelationManager::createCatalog() {
         //Create File for tables & attributes
-        //printf("Creating Catalog\n");
+        printf("Creating Catalog\n");
         if(this->CatalogActive){
             //printf("Catalog already created\n");
             return -1;
@@ -48,6 +48,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
+
         printf("Deleting Catalog\n");
 
         if(CatalogActive == false){
@@ -117,9 +118,8 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteTable(const std::string &tableName) {
-        auto it = tableNameToIdMap.find(tableName);
-
-        if(it != tableNameToIdMap.end()){
+        printf("Delete Table:{%s}\n", tableName.c_str());
+        if(TableExists(tableName)){
             RecordBasedFileManager::instance().destroyFile(tableName);
             int tableInt = tableNameToIdMap[tableName];
             tableNameToIdMap.erase(tableName);
@@ -198,6 +198,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::updateTuple(const std::string &tableName, const void *data, const RID &rid) {
+
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
@@ -209,6 +210,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::readTuple(const std::string &tableName, const RID &rid, void *data) {
+
         if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
@@ -233,6 +235,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
+
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         rbfm.printRecord(attrs, data, out);
         return 0;
@@ -240,12 +243,13 @@ namespace PeterDB {
 
     RC RelationManager::readAttribute(const std::string &tableName, const RID &rid, const std::string &attributeName,
                                       void *data) {
+
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
         rbfm.openFile(tableName,fh);
-        rbfm.readAttribute(fh, recordD, rid, attributeName, data);
+        //rbfm.readAttribute(fh, recordD, rid, attributeName, data);
         rbfm.closeFile(fh);
 
         return 0;
@@ -269,10 +273,7 @@ namespace PeterDB {
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
 
             rm_ScanIterator.rbfmIterator = Iterator;
-            rm_ScanIterator.tableName = tableName;
             rm_ScanIterator.scannedRIDS = Iterator.scannedRIDS;
-            rm_ScanIterator.currentRID = rm_ScanIterator.scannedRIDS.begin();
-            rm_ScanIterator.attrName = conditionAttribute;
             return 0;
         }
         else{
@@ -447,18 +448,6 @@ namespace PeterDB {
         for(auto i : scannedRIDS){
             printf("{%d}{%d}\n",i.pageNum,i.slotNum);
         }
-        if (currentRID == scannedRIDS.end()) {
-            return RBFM_EOF;
-        }
-        RecordBasedFileManager& r = RecordBasedFileManager::instance();
-        RelationManager& rm = RelationManager::instance();
-
-        int tableID = rm.tableNameToIdMap[tableName];
-        FileHandle fh = rm.tableIDmap[tableID];
-        std::vector<Attribute> recordD = rm.getRecordDescriptor(tableID);
-        r.readAttribute(fh, recordD, *currentRID, attrName, data);
-        currentRID++;
-
         return -1;
     }
 

@@ -65,7 +65,7 @@ namespace PeterDB {
         RC getNextRecord(RID &rid, void *data);
         RC scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor);
         RC close() { return 0;};
-        std::vector<RID>::iterator currentRID = recordRIDS.begin();
+        std::vector<RID>::iterator currentRID;
         std::vector<RID> recordRIDS;
         std::vector<RID> scannedRIDS;
         std::string tableName;

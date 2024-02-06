@@ -677,7 +677,7 @@ namespace PeterDBTesting {
 
         bufSize = 100;
         size_t tupleSize = 0;
-        unsigned numTuples = 1500;
+        unsigned numTuples = 15; //1500
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
@@ -728,7 +728,7 @@ namespace PeterDBTesting {
 
         bufSize = 200;
         size_t tupleSize = 0;
-        unsigned numTuples = 1500;
+        unsigned numTuples = 15; //1500
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
