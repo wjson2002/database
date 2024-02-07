@@ -65,12 +65,17 @@ namespace PeterDB {
         RC getNextRecord(RID &rid, void *data);
         RC scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor);
         RC close() { return 0;};
-        std::vector<RID>::iterator currentRID;
-        std::vector<RID> recordRIDS;
-        std::vector<RID> scannedRIDS;
-        std::string tableName;
+
+        RID currentRID;
+        CompOp compOp;
+        const void *value;
+        std::string fileName;
         FileHandle fileHandle = fileHandle;
         std::vector<Attribute> recordDescriptor = recordDescriptor;
+        std::string conditionAttribute;
+        AttrType attrType;
+        int attrLength;
+        int numOfPages;
 
     };
 

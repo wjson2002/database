@@ -103,17 +103,20 @@ namespace PeterDB {
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
 
         // Insert Record into Attributes
+        rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
         int position = 0;
         for(auto attr: attrs){
-            std::string attrData[] = {tableIndex, attr.name,
-                                  std::to_string(attr.type),
-                                  std::to_string(position),
-                                      std::to_string(attr.length)};
+            std::string attrData[] = {  tableIndex,
+                                        attr.name,
+                                        std::to_string(attr.type),
+                                        std::to_string(position),
+                                        std::to_string(attr.length)};
+
             auto bytes = convert(attributeRecordDescriptor, attrData);
             rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
             position += 1;
         }
-
+        rbfm.closeFile(attributeFileHandle);
         return 0;
     }
 
@@ -171,8 +174,9 @@ namespace PeterDB {
 
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
-        rbfm.openFile(tableName, fh);
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+
+        rbfm.openFile(tableName, fh);
         rbfm.insertRecord(fh, recordD, data, rid);
         rbfm.closeFile(fh);
         return 0;
@@ -219,8 +223,8 @@ namespace PeterDB {
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
             rbfm.closeFile(fh);
-            //printf("Read Tuple: ");
-            //rbfm.printRecord(recordD, data, std::cout);
+            printf("Read Tuple: ");
+            rbfm.printRecord(recordD, data, std::cout);
             if(result == 0){
                 return 0;
             }
@@ -249,7 +253,7 @@ namespace PeterDB {
         FileHandle fh = tableIDmap[tableID];
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
         rbfm.openFile(tableName,fh);
-        //rbfm.readAttribute(fh, recordD, rid, attributeName, data);
+        rbfm.readAttribute(fh, recordD, rid, attributeName, data);
         rbfm.closeFile(fh);
 
         return 0;
@@ -268,12 +272,12 @@ namespace PeterDB {
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             RBFM_ScanIterator Iterator = RBFM_ScanIterator();
-            Iterator.tableName = tableName;
+
             rbfm.openFile(tableName, fh);
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
 
             rm_ScanIterator.rbfmIterator = Iterator;
-            rm_ScanIterator.scannedRIDS = Iterator.scannedRIDS;
+
             return 0;
         }
         else{
@@ -411,21 +415,25 @@ namespace PeterDB {
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
 
+        printf("Scan for rd table: {%d}\n", table_id);
+        rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
         rbfm.scan(attributeFileHandle, attributeRecordDescriptor,
                   "table-id", EQ_OP, &value, attributeNames,
                   Iterator);
 
         std::vector<Attribute> result;
-
-        for(auto RID : Iterator.scannedRIDS){
-            void* temp[150];
-            //printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
-            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
-            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
-            //printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
+        RID tempRID;
+        void* buffer[150];
+        int count  = 0;
+        int i = 0;
+        while((i = Iterator.getNextRecord(tempRID, buffer)) != RBFM_EOF){
+            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, tempRID, buffer);
+            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, buffer);
             result.push_back(tempAttr);
+            count++;
         }
-
+        rbfm.closeFile(attributeFileHandle);
+        printf("Get next record ran {%d} times\n", count);
         return result;
     }
 

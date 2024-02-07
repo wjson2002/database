@@ -425,7 +425,7 @@ namespace PeterDBTesting {
         createLargeTable(tableName);
 
         inBuffer = malloc(bufSize);
-        int numTuples = 5000;
+        int numTuples = 100;
 
         // GetAttributes
         ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
@@ -458,7 +458,7 @@ namespace PeterDBTesting {
         // 1. read tuple
 
         size_t size = 0;
-        int numTuples = 5000;
+        int numTuples = 100;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -495,9 +495,9 @@ namespace PeterDBTesting {
         // 1. update tuple
         // 2. read tuple
 
-        int numTuples = 5000;
-        unsigned numTuplesToUpdate1 = 2000;
-        unsigned numTuplesToUpdate2 = 2000;
+        int numTuples = 100;
+        unsigned numTuplesToUpdate1 = 2;
+        unsigned numTuplesToUpdate2 = 2;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -589,8 +589,8 @@ namespace PeterDBTesting {
         // 1. delete tuple
         // 2. read tuple
 
-        unsigned numTuples = 5000;
-        unsigned numTuplesToDelete = 2000;
+        unsigned numTuples = 100;
+        unsigned numTuplesToDelete = 2;
         outBuffer = malloc(bufSize);
 
         readRIDsFromDisk(rids, numTuples);

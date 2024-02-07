@@ -5,7 +5,7 @@
 
 
 namespace PeterDB {
-    int SLOTSIZE = 483;
+    int SLOTSIZE = 203;
     int MAX_SLOTS = ((SLOTSIZE - 3) / 8) - 1;
     int MIN_RECORD_SIZE = 6;
     RecordBasedFileManager &RecordBasedFileManager::instance() {
@@ -725,106 +725,91 @@ namespace PeterDB {
                                     const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
-        scannedRIDS.clear();
 
-        int size = 0;
-        AttrType type;
+        RID start;
+        start.pageNum = 0;
+        start.slotNum = 0;
+        rbfm_ScanIterator.fileHandle = fileHandle;
+        rbfm_ScanIterator.recordDescriptor = recordDescriptor;
+        rbfm_ScanIterator.currentRID = start;
+        rbfm_ScanIterator.compOp = compOp;
+        rbfm_ScanIterator.numOfPages = fileHandle.numOfPages;
+        rbfm_ScanIterator.conditionAttribute = conditionAttribute;
+        rbfm_ScanIterator.value = value;
 
-        for(auto attr : recordDescriptor){
-            size += attr.length;
+        for(auto attr : recordDescriptor) {
+              if(attr.name == conditionAttribute) {
+                  rbfm_ScanIterator.attrType = attr.type;
+                  rbfm_ScanIterator.attrLength = attr.length;
+              }
         }
-
-        RID rid;
-        void* data[size];
-        rbfm_ScanIterator.scanInit(fileHandle, recordDescriptor);
-        while(rbfm_ScanIterator.getNextRecord(rid, &data) != RBFM_EOF){
-            //("Scan iterator found: {%d}, {%d}\n", rid.pageNum, rid.slotNum);
-            for(auto attr : recordDescriptor){
-                if(attr.name == conditionAttribute){
-                    void *d[size];
-                    readAttribute(fileHandle, recordDescriptor, rid, conditionAttribute, d);
-                    char* pointer = (char*)d + 1;
-                    type = attr.type;
-                    if(type == TypeInt)
-                    {
-                        //printf("Read found:{%d}, {%d}, {%d}\n", *(int*)d, *(int*)value, type);
-                        if(compareNums( *(int *)value,*(int *)pointer, compOp)){
-                            rbfm_ScanIterator.scannedRIDS.push_back(rid);
-                        }
-                    }
-                    else if(type == TypeReal){
-                        //printf("Read found:{%f}, {%f}, {%d}\n", *(float*)d, *(float*)value, type);
-                        if(compareNums( *(float *)value,*(float *)pointer, compOp)){
-                            // printf("Macth found:{%f}, {%f}, {%d}\n", *(float*)pointer, *(float*)value, type);
-
-                            rbfm_ScanIterator.scannedRIDS.push_back(rid);
-                        }
-
-                    }
-                    else if(type == TypeVarChar)
-                    {
-                        //printf("Read found:{%s}, {%s}, {%d}\n", (char *)d, (char*)value, type);
-                        if (compareString((char*)value, (char*)pointer, compOp)){
-                            //printf("Macth found:{%s}, {%s}, {%d}\n", (char *)pointer, (char*)value, type);
-                            rbfm_ScanIterator.scannedRIDS.push_back(rid);
-                        }
-                    }
-                }
-            }
-        }
-        rbfm_ScanIterator.currentRID = rbfm_ScanIterator.scannedRIDS.begin();
         return 0;
-    }
 
+    }
 
 
     RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data) {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-
-        if (currentRID == scannedRIDS.end() || currentRID == recordRIDS.end()) {
+        unsigned pageNum = currentRID.pageNum;
+        if(pageNum >= numOfPages){
+            printf("return -1\n");
             return RBFM_EOF;
         }
-        else
-        {
-            RC result = rbfm.readRecord(fileHandle, recordDescriptor, *currentRID, data);
-            if (result == 0) {
-                rid = *currentRID;
-                currentRID++;
-                return 0;
-            } else {
-                return RBFM_EOF;
+        else{
+            while (currentRID.pageNum < numOfPages){
+//                char buffer[PAGE_SIZE];
+//                fileHandle.readPage(pageNum, buffer);
+//                int numRecords;
+//                memmove(&numRecords, buffer + 2, 1);
+                while(currentRID.slotNum < MAX_SLOTS){
+                    void* d[attrLength + 1];
+                    rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute ,d);
+                    char* pointer = (char*)d + 1;
+                    if(attrType == TypeInt)
+                    {
+                        printf("Read Int:{%d}, {%d}, {%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum, *(int *)pointer, *(int *)value);
+                        if(rbfm.compareNums( *(int *)value,*(int *)pointer, compOp)){
+                            printf("Macth found:{%d}, {%d}}\n", *(int*)pointer, *(int*)value);
+                            rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
+                            rid = currentRID;
+                            currentRID.slotNum += 1;
+                            return 0;
+                        }
+                    }
+                    else if(attrType == TypeReal){
+                        printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
+                        if(rbfm.compareNums( *(float *)value,*(float *)pointer, compOp)){
+                            printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
+
+                            rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
+                            rid = currentRID;
+                            currentRID.slotNum += 1;
+                            return 0;
+                        }
+
+                    }
+                    else if(attrType == TypeVarChar)
+                    {
+                        printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
+                        if (rbfm.compareString((char*)value, (char*)pointer, compOp)){
+                            printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
+                            rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
+                            rid = currentRID;
+                            currentRID.slotNum += 1;
+                            return 0;
+                        }
+                    }
+                    currentRID.slotNum += 1;
+                }
+
+                currentRID.pageNum += 1;
+                currentRID.slotNum = 0;
             }
+            return RBFM_EOF;
         }
     };
 
-    RC RBFM_ScanIterator::scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor){
-        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        this->fileHandle = fh;
-        this->recordDescriptor = recordDescriptor;
-        int numOfPages = fileHandle.numOfPages;
 
-        int size = 0;
-        AttrType type;
-
-        for(auto attr : recordDescriptor){
-            size += attr.length;
-        }
-
-        for(int i = 0;i < numOfPages;i++) {
-            RID tempRID;
-            tempRID.pageNum = i;
-            for (int j = 0; j < MAX_SLOTS; j++) {
-                tempRID.slotNum = j;
-                void* data[size];
-                int read = rbfm.readRecord(fileHandle, recordDescriptor, tempRID, &data);
-                if(read == 0) {
-                    recordRIDS.push_back(tempRID);
-                }
-            }
-
-        }
-        currentRID = recordRIDS.begin();
-    }
     template <typename T>
     bool RecordBasedFileManager::compareNums(T value1, T value2, CompOp compOp){
         if (compOp == EQ_OP){return (value1 == value2);}

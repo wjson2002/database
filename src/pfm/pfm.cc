@@ -180,20 +180,20 @@ namespace PeterDB {
     }
 
     void FileHandle::loadFile(){
-       // printf("Loading File...");
+        printf("Loading File...");
 
         fseek(myFile,0,SEEK_SET);
         fread(&numOfPages, sizeof(unsigned), 1, myFile);
-       // printf("Page Count:{%d} ", numOfPages);
+        printf("Page Count:{%d} ", numOfPages);
 
         fread(&readPageCounter, sizeof(unsigned), 1, myFile);
-       // printf("Read Count:{%d} ", readPageCounter);
+        printf("Read Count:{%d} ", readPageCounter);
 
         fread(&writePageCounter, sizeof(unsigned), 1, myFile);
-       // printf("Write Count: {%d} ", writePageCounter);
+        printf("Write Count: {%d} ", writePageCounter);
 
         fread(&appendPageCounter, sizeof(unsigned), 1, myFile);
-       // printf("....Loading File Finished...\n");
+        printf("....Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
         fseek(myFile,0,SEEK_SET);
