@@ -223,8 +223,8 @@ namespace PeterDB {
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
             rbfm.closeFile(fh);
-            printf("Read Tuple: ");
-            rbfm.printRecord(recordD, data, std::cout);
+            //printf("Read Tuple: ");
+            //rbfm.printRecord(recordD, data, std::cout);
             if(result == 0){
                 return 0;
             }
@@ -455,6 +455,7 @@ namespace PeterDB {
     RM_ScanIterator::~RM_ScanIterator() = default;
 
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
+
         int result = rbfmIterator.getNextRecord(rid, data);
 
         if(result == 0){

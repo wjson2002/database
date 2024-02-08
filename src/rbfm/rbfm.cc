@@ -801,7 +801,7 @@ namespace PeterDB {
                             rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                             rid = currentRID;
                             currentRID.slotNum += 1;
-
+                            rbfm.closeFile(fileHandle);
 
                             return 0;
                         }
@@ -815,6 +815,7 @@ namespace PeterDB {
                             rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                             rid = currentRID;
                             currentRID.slotNum += 1;
+                            rbfm.closeFile(fileHandle);
                             return 0;
                         }
                     }
@@ -824,6 +825,7 @@ namespace PeterDB {
                 currentRID.pageNum += 1;
                 currentRID.slotNum = 0;
             }
+            rbfm.closeFile(fileHandle);
             return RBFM_EOF;
         }
     };
