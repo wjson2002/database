@@ -137,7 +137,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        printf("Getting attributes\n");
+        printf("Getting table {%s}\n", tableName.c_str());
 
         if(tableName == DEFAULT_TABLES_NAME){
             attrs = tableRecordDescriptor;

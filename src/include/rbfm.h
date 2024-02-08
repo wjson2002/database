@@ -99,7 +99,6 @@ namespace PeterDB {
                                                 int length,char (&buffer)[PAGE_SIZE],
                                                 int &offsetPointer);
 
-        void readSlotDirectory(void* page);
         int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
         std::vector<int> serialize(char* bytes, int size);
 
