@@ -230,10 +230,10 @@ namespace PeterDB {
                    readBuffer + totalOffset, sizeof(int));
             memcpy(&newRID.slotNum,
                    readBuffer + totalOffset +4, sizeof(short));
-            printf("Record is in tombstone, going to {%d}, {%d}\n", newRID.pageNum, newRID.slotNum);
+            //printf("Record is in tombstone, going to {%d}, {%d}\n", newRID.pageNum, newRID.slotNum);
             free(readBuffer);
             readRecord(fileHandle, recordDescriptor, newRID, data);
-            printf("Record found\n");
+           // printf("Record found\n");
             printRecord(recordDescriptor, data, std::cout);
 
             return 0;
@@ -377,7 +377,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const RID &rid) {
-        //printf("Deleting {%d},{%d}\n",rid.pageNum, rid.slotNum);
+
         bool isTombstone = false;
         char *buffer = (char*)malloc(4096);
         unsigned pageNumber = rid.pageNum;
@@ -396,16 +396,16 @@ namespace PeterDB {
         int length = 0;
         memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8,sizeof(int));
         memcpy(&length,buffer + 2  + sizeof(int) + (slotNumber) * 8, sizeof(int));
-
+        printf("Deleting {%d},{%d}, {%d},{%d}\n",rid.pageNum, rid.slotNum, offset, length);
         RID tombstoneRID;
         if(length == -1){
             length = MIN_RECORD_SIZE;
             isTombstone = true;
-            memmove( &tombstoneRID.pageNum,buffer + offset, 3);
-            memmove( &tombstoneRID.slotNum,buffer+offset+3, 3);
+            memmove( &tombstoneRID.pageNum,buffer + offset, 4);
+            memmove( &tombstoneRID.slotNum,buffer+offset+4, 2);
+            printf("Record is tombstone:{%d},{%d}\n",tombstoneRID.pageNum, tombstoneRID.slotNum);
 
         }
-
         //Erase record, set all bytes to 0 (not necessary)
         memset(buffer + offset, 0, length);
 
@@ -426,15 +426,19 @@ namespace PeterDB {
                 PAGE_SIZE - offset - length);
 
         //update offsets for shifted slots
-        for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+
+        for(int i = 1;i< numberOfRecords;i++){
             int tempLen = 0;
-            memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
-            memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
+            memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i + slotNumber) * 8,sizeof(int));
+            memmove(&tempLen, buffer + 2 + sizeof(int) + (i + slotNumber) * 8,sizeof(int));
 
             if((tempLen > 0 && tempLen <= PAGE_SIZE) || tempLen == -1){
                 unsigned newOffset = offset - length;
-                memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                memmove(buffer + 2 + 2 * sizeof(int) + (i + slotNumber) * 8,&newOffset,sizeof(int));
                 //printf("Moving dest %d to src %d\n",offset,offset-length);
+            }
+            if(tempLen == 0){
+                numberOfRecords += 1;
             }
         }
 
@@ -450,7 +454,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, const RID &rid) {
-        printf("Updating {%d},{%d}: ",rid.pageNum, rid.slotNum);
+        printf("\nUpdating {%d},{%d}: ",rid.pageNum, rid.slotNum);
         char *buffer = (char*) malloc(PAGE_SIZE);
         unsigned pageNumber = rid.pageNum;
         unsigned slotNumber = rid.slotNum;
@@ -474,7 +478,7 @@ namespace PeterDB {
         //printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
         //Scenario 1: Updated Record Size = Old Record Size
         if(length == updatedRecordSize){
-            printf("Updating scenario 1\n");
+            printf("Updating scenario 1");
             memcpy(buffer+offset, data, updatedRecordSize);
             fileHandle.writePage(rid.pageNum, buffer);
             free(buffer);
@@ -482,14 +486,14 @@ namespace PeterDB {
         }
             //Scenario 2: Updated Record Size < Old Record Size
         else if(updatedRecordSize < length){
-            printf("Updating scenario 2\n");
+            printf("Updating scenario 2");
             memcpy(buffer+offset, data, updatedRecordSize);
             //shift slot directory
             memmove(buffer  + offset + updatedRecordSize,
                     buffer  + offset + length,
                     PAGE_SIZE  - offset - length);
 
-            for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+            for(int i = rid.slotNum + 1;i < numberOfRecords; i++){
                 int tempLen = 0;
                 memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
                 memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
@@ -498,6 +502,9 @@ namespace PeterDB {
                     unsigned newOffset = offset - length + updatedRecordSize;
                     memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
                    // printf("Moving slot{%d} of size{%d} from %d to  %d\n",i,tempLen, offset,newOffset);
+                }
+                if(tempLen == 0){
+                    numberOfRecords++;
                 }
             }
 
@@ -524,7 +531,7 @@ namespace PeterDB {
                 fileHandle.readPage(rid.pageNum, buffer);
 
                 //Convert record to tombstone
-                printf("Converted record to {%d},{%d}\n", newRID.pageNum, newRID.slotNum);
+                printf("Converted record to {%d},{%d}", newRID.pageNum, newRID.slotNum);
                 memcpy(buffer + offset, &newRID.pageNum, sizeof(int));
                 memcpy(buffer + offset + 4, &newRID.slotNum, sizeof(short));
                 if(slotNumber < numberOfRecords){
@@ -535,7 +542,8 @@ namespace PeterDB {
                             PAGE_SIZE - offset - lengthDifference);
 
                     //update offsets for shifted slots
-                    for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+                    for(int i = rid.slotNum + 1;i < numberOfRecords; i++){
+
                         int tempLen = 0;
                         memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
                         memmove(&tempLen, buffer + 2 + sizeof(int) + (i) * 8,sizeof(int));
@@ -543,6 +551,10 @@ namespace PeterDB {
                         if(tempLen != 0 && tempLen <= PAGE_SIZE){
                             unsigned newOffset = offset - lengthDifference;
                             memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                            printf("shifting slot{%d} from{%d}to{%d} ", i, offset, newOffset);
+                        }
+                        if(tempLen == 0){
+                            numberOfRecords++;
                         }
                     }
                 }
@@ -558,13 +570,13 @@ namespace PeterDB {
                 //Scenario 3.2: shift all slots to add space to updated slot
             else{
                 int src = offset;
-                printf("Updating scenario 3.2:Make more Space-> offset{%d}, size{%d}\n",src, updatedRecordSize);
+                printf("Updating scenario 3.2:Make more Space-> offset{%d}, size{%d}",src, updatedRecordSize);
                 //Shift Slot Directory to make space
                 memmove(buffer + offset + updatedRecordSize,
                         buffer + offset + length,
                         PAGE_SIZE - offset - updatedRecordSize);
                 //update offsets
-                for(int i = rid.slotNum + 1;i < MAX_SLOTS; i++){
+                for(int i = rid.slotNum + 1;i < numberOfRecords; i++){
                     int tempOff = 0;
                     int tempLen = 0;
                     memmove(&tempOff, buffer + 2 + 2 * sizeof(int) + (i) * 8,sizeof(int));
@@ -573,6 +585,9 @@ namespace PeterDB {
                     if((tempLen > 0 && tempLen < PAGE_SIZE) || tempLen == -1){
                         unsigned newOffset = tempOff + growSize;
                         memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
+                    }
+                    if(tempLen == 0){
+                        numberOfRecords ++;
                     }
                 }
 

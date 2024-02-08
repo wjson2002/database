@@ -220,6 +220,7 @@ namespace PeterDB {
             int tableID = tableNameToIdMap[tableName];
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+            printf("Reading {%d},{%d]", rid.pageNum, rid.slotNum);
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
             rbfm.closeFile(fh);
