@@ -356,7 +356,9 @@ namespace PeterDBTesting {
                                     << "RelationManager::scan() should succeed.";
 
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+            //rm.printTuple(attrs, outBuffer, std::cout);
             unsigned returnedAge = *(unsigned *) ((uint8_t *) outBuffer + 1);
+            printf("Returned: {%d}\n", returnedAge);
             auto target = ages.find(returnedAge);
             ASSERT_NE(target, ages.end()) << "Returned age is not from the inserted ones.";
             ages.erase(target);

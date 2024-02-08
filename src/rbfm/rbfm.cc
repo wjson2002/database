@@ -736,6 +736,8 @@ namespace PeterDB {
         rbfm_ScanIterator.numOfPages = fileHandle.numOfPages;
         rbfm_ScanIterator.conditionAttribute = conditionAttribute;
         rbfm_ScanIterator.value = value;
+        rbfm_ScanIterator.fileName = fileHandle.FileName;
+        rbfm_ScanIterator.attributeNames = attributeNames;
 
         for(auto attr : recordDescriptor) {
               if(attr.name == conditionAttribute) {
@@ -750,49 +752,66 @@ namespace PeterDB {
 
     RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data) {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        rbfm.openFile(fileName, fileHandle);
         unsigned pageNum = currentRID.pageNum;
         if(pageNum >= numOfPages){
             printf("return -1\n");
+            rbfm.closeFile(fileHandle);
             return RBFM_EOF;
         }
         else{
             while (currentRID.pageNum < numOfPages){
-//                char buffer[PAGE_SIZE];
-//                fileHandle.readPage(pageNum, buffer);
-//                int numRecords;
-//                memmove(&numRecords, buffer + 2, 1);
-                while(currentRID.slotNum < MAX_SLOTS){
+
+                char buffer[PAGE_SIZE];
+                fileHandle.readPage(pageNum, buffer);
+                char numOfRecords;
+                memmove(&(numOfRecords), buffer + 2, sizeof(char));
+
+                while(currentRID.slotNum < (int)numOfRecords){
                     void* d[attrLength + 1];
-                    rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute ,d);
-                    char* pointer = (char*)d + 1;
+                    memset(d, -1, attrLength + 1);
+                    rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute,d);
+                    char temp;
+                    memmove(&temp, &d, 1);
+                    char* pointer;
+                    if(temp == 1){
+                        pointer = nullptr;
+                    }
+                    else{
+                       pointer = (char*)d + 1;
+                    }
                     if(attrType == TypeInt)
                     {
-                        printf("Read Int:{%d}, {%d}, {%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum, *(int *)pointer, *(int *)value);
-                        if(rbfm.compareNums( *(int *)value,*(int *)pointer, compOp)){
-                            printf("Macth found:{%d}, {%d}}\n", *(int*)pointer, *(int*)value);
+                        //printf("Read Int:{%d}, {%d}, {%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum, *(int *)pointer, *(int *)value);
+                        if(rbfm.compareNums((int *)pointer, (int *)value, compOp, TypeInt)){
+                            //printf("Macth found:{%d}, {%d}}\n", *(int*)pointer, *(int*)value);
                             rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                             rid = currentRID;
                             currentRID.slotNum += 1;
+                            rbfm.closeFile(fileHandle);
+
                             return 0;
                         }
                     }
                     else if(attrType == TypeReal){
-                        printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
-                        if(rbfm.compareNums( *(float *)value,*(float *)pointer, compOp)){
-                            printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
+                       // printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
+                        if(rbfm.compareNums( (float *)pointer,(float *)value, compOp, TypeReal)){
+                           // printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
 
                             rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                             rid = currentRID;
                             currentRID.slotNum += 1;
+
+
                             return 0;
                         }
 
                     }
                     else if(attrType == TypeVarChar)
                     {
-                        printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
+                        //printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
                         if (rbfm.compareString((char*)value, (char*)pointer, compOp)){
-                            printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
+                           // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
                             rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                             rid = currentRID;
                             currentRID.slotNum += 1;
@@ -800,8 +819,8 @@ namespace PeterDB {
                         }
                     }
                     currentRID.slotNum += 1;
-                }
 
+                }
                 currentRID.pageNum += 1;
                 currentRID.slotNum = 0;
             }
@@ -811,15 +830,46 @@ namespace PeterDB {
 
 
     template <typename T>
-    bool RecordBasedFileManager::compareNums(T value1, T value2, CompOp compOp){
-        if (compOp == EQ_OP){return (value1 == value2);}
-        else if (compOp == LT_OP){return (value1 < value2);}
-        else if (compOp == LE_OP){return (value1 <= value2);}
-        else if (compOp == GT_OP){return (value1 > value2);}
-        else if (compOp == GE_OP){return (value1 >= value2);}
-        else if (compOp == NE_OP){return (value1 != value2);}
-        else if (compOp == NO_OP){return true;}
-        else {return false;}
+    bool RecordBasedFileManager::compareNums(T* value1, T* value2, CompOp compOp, AttrType type){
+        if(type == TypeInt){
+            if(value1 == nullptr || value2 == nullptr){
+                if(compOp == NO_OP){
+                    return true;
+                }
+            }
+            else{
+                int a = *value1;
+                int b = *value2;
+                if (compOp == EQ_OP){return (a == b);}
+                else if (compOp == LT_OP){return (a < b);}
+                else if (compOp == LE_OP){return (a <= b);}
+                else if (compOp == GT_OP){return (a > b);}
+                else if (compOp == GE_OP){return (a >= b);}
+                else if (compOp == NE_OP){return (a != b);}
+                else if (compOp == NO_OP){return true;}
+                else {return false;}
+            }
+        }
+        else if(type == TypeReal){
+            if(value1 == nullptr || value2 == nullptr){
+                if(compOp == NO_OP){
+                    return true;
+                }
+            }
+            else{
+                float a = *value1;
+                float b = *value2;
+                if (compOp == EQ_OP){return (a == b);}
+                else if (compOp == LT_OP){return (a < b);}
+                else if (compOp == LE_OP){return (a <= b);}
+                else if (compOp == GT_OP){return (a > b);}
+                else if (compOp == GE_OP){return (a >= b);}
+                else if (compOp == NE_OP){return (a != b);}
+                else if (compOp == NO_OP){return true;}
+                else {return false;}
+            }
+        }
+
     }
 
     bool RecordBasedFileManager::compareString(char* value1, char* value2, CompOp compOp){

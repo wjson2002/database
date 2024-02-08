@@ -73,6 +73,7 @@ namespace PeterDB {
         FileHandle fileHandle = fileHandle;
         std::vector<Attribute> recordDescriptor = recordDescriptor;
         std::string conditionAttribute;
+        std::vector<std::string> attributeNames;
         AttrType attrType;
         int attrLength;
         int numOfPages;
@@ -160,7 +161,7 @@ namespace PeterDB {
 
         std::vector<RID> scannedRIDS;
         template <typename T>
-        bool compareNums(T value1, T value2, const CompOp compOp);
+        bool compareNums(T* value1, T* value2, const CompOp compOp, AttrType type);
         bool compareString(char* value1, char* value2, CompOp compOp);
 
     protected:

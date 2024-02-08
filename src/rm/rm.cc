@@ -273,7 +273,7 @@ namespace PeterDB {
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             RBFM_ScanIterator Iterator = RBFM_ScanIterator();
 
-            rbfm.openFile(tableName, fh);
+
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
 
             rm_ScanIterator.rbfmIterator = Iterator;
@@ -415,8 +415,8 @@ namespace PeterDB {
         RBFM_ScanIterator Iterator = RBFM_ScanIterator();
         std::vector<std::string> attributeNames;
 
-        printf("Scan for rd table: {%d}\n", table_id);
-        rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
+        //printf("Scan for rd table: {%d}\n", table_id);
+
         rbfm.scan(attributeFileHandle, attributeRecordDescriptor,
                   "table-id", EQ_OP, &value, attributeNames,
                   Iterator);
@@ -427,13 +427,15 @@ namespace PeterDB {
         int count  = 0;
         int i = 0;
         while((i = Iterator.getNextRecord(tempRID, buffer)) != RBFM_EOF){
+            rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
             rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, tempRID, buffer);
             Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, buffer);
             result.push_back(tempAttr);
             count++;
+            rbfm.closeFile(attributeFileHandle);
         }
-        rbfm.closeFile(attributeFileHandle);
-        printf("Get next record ran {%d} times\n", count);
+
+        //printf("Get next record ran {%d} times\n", count);
         return result;
     }
 
@@ -453,10 +455,24 @@ namespace PeterDB {
     RM_ScanIterator::~RM_ScanIterator() = default;
 
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
-        for(auto i : scannedRIDS){
-            printf("{%d}{%d}\n",i.pageNum,i.slotNum);
+        int result = rbfmIterator.getNextRecord(rid, data);
+
+        if(result == 0){
+            std::vector<std::string> attributeNames = rbfmIterator.attributeNames;
+            if(attributeNames.size() == 0){
+                return 0;
+            }
+            else{
+                RelationManager& rm = RelationManager::instance();
+                for(auto attr: attributeNames){
+                    rm.readAttribute(rbfmIterator.fileName, rid, attr, data);
+                }
+            }
+
         }
-        return -1;
+        else{
+            return RM_EOF;
+        }
     }
 
     RC RM_ScanIterator::close() {
