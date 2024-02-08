@@ -97,6 +97,7 @@ namespace PeterDB {
         tableNameToIdMap.insert({tableName, index});
         RID rid;
         // Insert records into Table
+        rbfm.openFile(DEFAULT_TABLES_NAME, tableFileHandle);
         std::string tableIndex = std::to_string(index);
         std::string data[] = {tableIndex, tableName, tableName+".bin"};
         auto result = convert(tableRecordDescriptor, data);
@@ -169,7 +170,9 @@ namespace PeterDB {
         if(it == tableNameToIdMap.end()){
             return -1;
         }
-
+        if(tableName == DEFAULT_TABLES_NAME || tableName == DEFAULT_ATTRIBUTE_NAME){
+            return -1;
+        }
         std::vector<std::string> attributeNames;
 
         int tableID = tableNameToIdMap[tableName];
@@ -276,7 +279,12 @@ namespace PeterDB {
             for(auto attr : recordD){
                 rm_ScanIterator.maxSizeOfTuple += attr.length;
             }
-
+            if(tableName == DEFAULT_TABLES_NAME){
+                printf("Scanning Tables: \n");
+            }
+            if(tableName == DEFAULT_ATTRIBUTE_NAME){
+                printf("Scanning Columns: \n");
+            }
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
             rm_ScanIterator.recordDescriptor = recordD;
             rm_ScanIterator.rbfmIterator = Iterator;
@@ -284,6 +292,7 @@ namespace PeterDB {
             return 0;
         }
         else{
+            printf("Scan table doesn't exist");
             return -1;
         }
 
@@ -303,6 +312,7 @@ namespace PeterDB {
         createTable(DEFAULT_TABLES_NAME, tableRecordDescriptor);
         createTable(DEFAULT_ATTRIBUTE_NAME, attributeRecordDescriptor);
 
+        rbfm.closeFile(tableFileHandle);
         return 0;
     }
 

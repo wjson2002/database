@@ -816,6 +816,9 @@ namespace PeterDB {
 
     template <typename T>
     bool RecordBasedFileManager::compareNums(T* value1, T* value2, CompOp compOp, AttrType type){
+        if(compOp == NO_OP){
+            return true;
+        }
         if(type == TypeInt){
             if(value1 == nullptr || value2 == nullptr){
                 if(compOp == NO_OP){
