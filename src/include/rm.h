@@ -18,10 +18,10 @@ namespace PeterDB {
 
         // "data" follows the same format as RelationManager::insertTuple()
         RC getNextTuple(RID &rid, void *data);
-        std::vector<RID> scannedRIDS;
 
         RC close();
-
+        std::vector<Attribute> recordDescriptor;
+        int maxSizeOfTuple;
         RBFM_ScanIterator rbfmIterator;
 
     };
@@ -35,6 +35,7 @@ namespace PeterDB {
         // "key" follows the same format as in IndexManager::insertEntry()
         RC getNextEntry(RID &rid, void *key);    // Get next matching entry
         RC close();                              // Terminate index scan
+
     };
 
     // Relation Manager

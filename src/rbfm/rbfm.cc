@@ -479,7 +479,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, const RID &rid) {
-        //printf("Updating {%d},{%d}\n",rid.pageNum, rid.slotNum);
+        printf("Updating {%d},{%d}: ",rid.pageNum, rid.slotNum);
         char *buffer = (char*) malloc(PAGE_SIZE);
         unsigned pageNumber = rid.pageNum;
         unsigned slotNumber = rid.slotNum;
@@ -503,7 +503,7 @@ namespace PeterDB {
         //printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
         //Scenario 1: Updated Record Size = Old Record Size
         if(length == updatedRecordSize){
-            //printf("Updating scenario 1\n");
+            printf("Updating scenario 1\n");
             memcpy(buffer+offset, data, updatedRecordSize);
             fileHandle.writePage(rid.pageNum, buffer);
             free(buffer);
@@ -511,7 +511,7 @@ namespace PeterDB {
         }
             //Scenario 2: Updated Record Size < Old Record Size
         else if(updatedRecordSize < length){
-            //printf("Updating scenario 2\n");
+            printf("Updating scenario 2\n");
             memcpy(buffer+offset, data, updatedRecordSize);
             //shift slot directory
             memmove(buffer  + offset + updatedRecordSize,
@@ -543,7 +543,7 @@ namespace PeterDB {
             int growSize = updatedRecordSize - length;
             //Scenario 3.1: no free space left on page
             if(growSize > currentFreeSpace){
-               // printf("Updating scenario 3.1\n");
+                printf("Updating scenario 3.1\n");
 
                 free(buffer);
                 RID newRID;
@@ -590,7 +590,7 @@ namespace PeterDB {
                 int dest = updatedRecordSize;
                 int src = offset;
                 int size = PAGE_SIZE - offset - length;
-                //printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, updatedRecordSize);
+                printf("Updating scenario 3.2 dest{%d}, src{%d}, size{%d}\n", dest, src, updatedRecordSize);
                 //Shift Slot Directory to make space
                 memmove(buffer + offset + updatedRecordSize,
                         buffer + offset + length,

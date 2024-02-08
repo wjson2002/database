@@ -272,10 +272,12 @@ namespace PeterDB {
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             RBFM_ScanIterator Iterator = RBFM_ScanIterator();
-
+            for(auto attr : recordD){
+                rm_ScanIterator.maxSizeOfTuple += attr.length;
+            }
 
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
-
+            rm_ScanIterator.recordDescriptor = recordD;
             rm_ScanIterator.rbfmIterator = Iterator;
 
             return 0;
@@ -465,8 +467,14 @@ namespace PeterDB {
             }
             else{
                 RelationManager& rm = RelationManager::instance();
+                char* pointer = (char*)data;
                 for(auto attr: attributeNames){
-                    rm.readAttribute(rbfmIterator.fileName, rid, attr, data);
+                    rm.readAttribute(rbfmIterator.fileName, rid, attr, pointer);
+                    for(auto a : recordDescriptor){
+                        if(a.name == attr){
+                            pointer += a.length;
+                        }
+                    }
                 }
             }
 
