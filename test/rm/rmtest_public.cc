@@ -1,6 +1,8 @@
 #include "test/utils/rm_test_util.h"
 
 namespace PeterDBTesting {
+    int tuples = 100;
+    int scantuple = 50;
     TEST_F(RM_Catalog_Test, create_and_delete_tables) {
 
         // Try to delete the System Catalog.
@@ -322,7 +324,7 @@ namespace PeterDBTesting {
         // Functions Tested
         // 1. Simple scan
 
-        int numTuples = 100;
+        int numTuples = scantuple;
         size_t tupleSize = 0;
         inBuffer = malloc(200);
         outBuffer = malloc(200);
@@ -425,7 +427,7 @@ namespace PeterDBTesting {
         createLargeTable(tableName);
 
         inBuffer = malloc(bufSize);
-        int numTuples = 100; //5000
+        int numTuples =  tuples;
 
         // GetAttributes
         ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
@@ -458,7 +460,7 @@ namespace PeterDBTesting {
         // 1. read tuple
 
         size_t size = 0;
-        int numTuples = 50;
+        int numTuples = tuples;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -495,9 +497,9 @@ namespace PeterDBTesting {
         // 1. update tuple
         // 2. read tuple
 
-        int numTuples = 50; //5000,2000,2000
-        unsigned numTuplesToUpdate1 = 5;
-        unsigned numTuplesToUpdate2 = 5;
+        int numTuples =  tuples;
+        unsigned numTuplesToUpdate1 = tuples / 5;
+        unsigned numTuplesToUpdate2 = tuples / 5;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -589,7 +591,7 @@ namespace PeterDBTesting {
         // 1. delete tuple
         // 2. read tuple
 
-        unsigned numTuples = 100; // 5000,2000
+        unsigned numTuples = tuples;
         unsigned numTuplesToDelete = 5;
         outBuffer = malloc(bufSize);
 
@@ -677,7 +679,7 @@ namespace PeterDBTesting {
 
         bufSize = 100;
         size_t tupleSize = 0;
-        unsigned numTuples = 150; //1500
+        unsigned numTuples = scantuple;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
@@ -728,7 +730,7 @@ namespace PeterDBTesting {
 
         bufSize = 200;
         size_t tupleSize = 0;
-        unsigned numTuples = 150; // 1500
+        unsigned numTuples = scantuple;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;

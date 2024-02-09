@@ -234,12 +234,13 @@ namespace PeterDB {
             free(readBuffer);
             readRecord(fileHandle, recordDescriptor, newRID, data);
            // printf("Record found\n");
-            printRecord(recordDescriptor, data, std::cout);
 
             return 0;
 
         }else if (rid.slotNum <= (int)numOfRecords){
             memcpy(data, readBuffer+totalOffset, length);
+           // printf("Reading {%d},{%d] ", rid.pageNum, rid.slotNum);
+           // printf("Offset: {%d}\n", totalOffset);
             free(readBuffer);
             return 0;
         }
@@ -415,8 +416,10 @@ namespace PeterDB {
         //Update slot directory
         memmove(buffer, &newFileSize, sizeof(short));
         memmove(buffer + 2, &updatedNumberOfRecords, sizeof(char));
-        memset(buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
-        memset(buffer + 2 + sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
+
+        memset(buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, -2, sizeof(int));
+
+        memset(buffer + 2 + sizeof(int) + (slotNumber) * 8, -2, sizeof(int));
 
 
         //Shift slot directory
@@ -435,7 +438,7 @@ namespace PeterDB {
             if((tempLen > 0 && tempLen <= PAGE_SIZE) || tempLen == -1){
                 unsigned newOffset = offset - length;
                 memmove(buffer + 2 + 2 * sizeof(int) + (i + slotNumber) * 8,&newOffset,sizeof(int));
-                //printf("Moving dest %d to src %d\n",offset,offset-length);
+                printf("Moving slot{%d}of size{%d} dest %d to src %d\n",i+slotNumber,tempLen,offset,offset-length);
             }
             if(tempLen == 0){
                 numberOfRecords += 1;
@@ -614,15 +617,16 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                              const RID &rid, const std::string &attributeName, void *data) {
+        if(rid.pageNum < 0){
+            printf("READATTR FAIL PAGE OUT OF RANGE\n");
+            return -1;
+        }
 
-
-        //printf("read attri{%d},{%d}\n",rid.pageNum, rid.slotNum);
-        char buffer[PAGE_SIZE];
-
+        char *readBuffer = (char*) malloc(PAGE_SIZE);
         unsigned pageNumber = rid.pageNum;
         unsigned slotNumber = rid.slotNum;
+        fileHandle.readPage(pageNumber, readBuffer);
 
-        fileHandle.readPage(pageNumber, buffer);
         int size = 0;
         for(auto attr : recordDescriptor){
             size += attr.length;
@@ -630,78 +634,107 @@ namespace PeterDB {
         //Get record
         int offset = -1;
         int length;
-        memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, sizeof(int));
-        memcpy(&length, buffer + 2 + sizeof(int) + (slotNumber) * 8, sizeof(int));
+        memcpy(&length, readBuffer + 2 + sizeof(int) + (slotNumber) * 8, sizeof(int));
+        memcpy(&offset, readBuffer + 2 + (2 * sizeof(int)) + (slotNumber) * 8, sizeof(int));
 
-        void* temp[size];
-        memcpy(&temp, buffer + offset, length);
-        int numOfNullBytes = ceil((double)recordDescriptor.size()/8);
+        char numOfRecords;
+        memmove(&(numOfRecords), readBuffer + 2, sizeof(char));
 
-        char* dataPointer = (char*)temp;
 
-        char nullIndicators[numOfNullBytes];
-
-        for (int i = 0; i < numOfNullBytes; i++) {
-            nullIndicators[i] = *dataPointer;
-            dataPointer++;
+        if(length == 0 || length >= PAGE_SIZE || length < -1){
+            // printf("Record does not exist\n");
+            return -1;
         }
 
-        std::vector<int> bitArray = serialize(nullIndicators, numOfNullBytes);
-        int index = 0;
-        float floatValue;
-        for (const Attribute& attribute : recordDescriptor){
-            if(attribute.name == attributeName){
-                //Allocate 1 byte for null
-                if(bitArray[index] == 1){
-                    index ++;
-                    memset(data, 1, 1);
+        //Read tombstone record
+        if(length == -1){
+            RID newRID;
+            memcpy(&newRID.pageNum,
+                   readBuffer + offset, sizeof(int));
+            memcpy(&newRID.slotNum,
+                   readBuffer + offset + 4, sizeof(short));
+
+            free(readBuffer);
+            readAttribute(fileHandle, recordDescriptor, newRID, attributeName, data);
+
+            return 0;
+
+        }else if (rid.slotNum <= (int)numOfRecords){
+            void* temp[size];
+            memcpy(&temp, readBuffer + offset, length);
+            int numOfNullBytes = ceil((double)recordDescriptor.size()/8);
+
+            char* dataPointer = (char*)temp;
+
+            char nullIndicators[numOfNullBytes];
+
+            for (int i = 0; i < numOfNullBytes; i++) {
+                nullIndicators[i] = *dataPointer;
+                dataPointer++;
+            }
+
+            std::vector<int> bitArray = serialize(nullIndicators, numOfNullBytes);
+            int index = 0;
+            float floatValue;
+            for (const Attribute& attribute : recordDescriptor){
+                if(attribute.name == attributeName){
+                    //Allocate 1 byte for null
+                    if(bitArray[index] == 1){
+                        index ++;
+                        memset(data, 1, 1);
+                        return 0;
+                    }
+                    else{
+                        memset(data, 0, 1);
+                    }
+                    switch (attribute.type) {
+                        case TypeInt:
+                            memcpy((char*)data + 1, dataPointer, sizeof(int));
+                            break;
+                        case TypeReal:
+                            memcpy((char*)data + 1, dataPointer, sizeof(float));
+                            floatValue = *(float*)data;
+                            break;
+                        case TypeVarChar:
+                            int *length = (int *) dataPointer;
+                            dataPointer += 4;
+                            memcpy((char*)data + 1, dataPointer, *length);
+                            for (int i = 0; i < *length; i++) {
+                                dataPointer++;
+                            }
+                            break;
+                    }
+                    free(readBuffer);
                     return 0;
                 }
-                else{
-                    memset(data, 0, 1);
+                if(bitArray[index] == 1){
+                    index ++;
+                    continue;
                 }
                 switch (attribute.type) {
                     case TypeInt:
-                        memcpy((char*)data + 1, dataPointer, sizeof(int));
+                        dataPointer +=4;
                         break;
                     case TypeReal:
-                        memcpy((char*)data + 1, dataPointer, sizeof(float));
-                        floatValue = *(float*)data;
+                        dataPointer +=4;
                         break;
                     case TypeVarChar:
-                        int *length = (int *) dataPointer;
+                        int* length= (int*)dataPointer;
                         dataPointer += 4;
-                        memcpy((char*)data + 1, dataPointer, *length);
-                        for (int i = 0; i < *length; i++) {
+                        for(int i = 0; i < *length; i++){
                             dataPointer++;
                         }
                         break;
                 }
-                return 0;
-            }
-            if(bitArray[index] == 1){
                 index ++;
-                continue;
             }
-            switch (attribute.type) {
-                case TypeInt:
-                    dataPointer +=4;
-                    break;
-                case TypeReal:
-                    dataPointer +=4;
-                    break;
-                case TypeVarChar:
-                    int* length= (int*)dataPointer;
-                    dataPointer += 4;
-                    for(int i = 0; i < *length; i++){
-                        dataPointer++;
-                    }
-                    break;
-            }
-            index ++;
+            free(readBuffer);
+            return 0;
+        }
+        else{
+            return -1;
         }
 
-        return 0;
     }
 
     RC RecordBasedFileManager::scan(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
@@ -754,53 +787,51 @@ namespace PeterDB {
                 while(currentRID.slotNum < (int)numOfRecords){
                     void* d[attrLength + 1];
                     memset(d, -1, attrLength + 1);
-                    rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute,d);
-                    char temp;
-                    memmove(&temp, &d, 1);
-                    char* pointer;
-                    if(temp == 1){
-                        pointer = nullptr;
-                    }
-                    else{
-                        pointer = (char*)d + 1;
-                    }
-                    if(attrType == TypeInt)
-                    {
-                        //printf("Read Int:{%d}, {%d}, {%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum, *(int *)pointer, *(int *)value);
-                        if(rbfm.compareNums((int *)pointer, (int *)value, compOp, TypeInt)){
-                            //printf("Macth found:{%d}, {%d}}\n", *(int*)pointer, *(int*)value);
-                            rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
-                            rid = currentRID;
-                            currentRID.slotNum += 1;
-                            rbfm.closeFile(fileHandle);
+                    int read = rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute,d);
 
-                            return 0;
+                    if(read == 0) {
+                        char temp;
+                        memmove(&temp, &d, 1);
+                        char *pointer;
+                        if (temp == 1) {
+                            pointer = nullptr;
+                        } else {
+                            pointer = (char *) d + 1;
                         }
-                    }
-                    else if(attrType == TypeReal){
-                       // printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
-                        if(rbfm.compareNums( (float *)pointer,(float *)value, compOp, TypeReal)){
-                           // printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
+                        if (attrType == TypeInt) {
+                            //printf("Read Int:{%d}, {%d}, {%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum, *(int *)pointer, *(int *)value);
+                            if (rbfm.compareNums((int *) pointer, (int *) value, compOp, TypeInt)) {
+                                //printf("Macth found:{%d}, {%d}}\n", *(int*)pointer, *(int*)value);
+                                rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
+                                rid = currentRID;
+                                currentRID.slotNum += 1;
+                                rbfm.closeFile(fileHandle);
 
-                            rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
-                            rid = currentRID;
-                            currentRID.slotNum += 1;
-                            rbfm.closeFile(fileHandle);
+                                return 0;
+                            }
+                        } else if (attrType == TypeReal) {
+                            // printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
+                            if (rbfm.compareNums((float *) pointer, (float *) value, compOp, TypeReal)) {
+                                // printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
 
-                            return 0;
-                        }
+                                rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
+                                rid = currentRID;
+                                currentRID.slotNum += 1;
+                                rbfm.closeFile(fileHandle);
 
-                    }
-                    else if(attrType == TypeVarChar)
-                    {
-                        //printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
-                        if (rbfm.compareString((char*)value, (char*)pointer, compOp)){
-                           // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
-                            rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
-                            rid = currentRID;
-                            currentRID.slotNum += 1;
-                            rbfm.closeFile(fileHandle);
-                            return 0;
+                                return 0;
+                            }
+
+                        } else if (attrType == TypeVarChar) {
+                            //printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
+                            if (rbfm.compareString((char *) value, (char *) pointer, compOp)) {
+                                // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
+                                rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
+                                rid = currentRID;
+                                currentRID.slotNum += 1;
+                                rbfm.closeFile(fileHandle);
+                                return 0;
+                            }
                         }
                     }
                     currentRID.slotNum += 1;

@@ -222,7 +222,6 @@ namespace PeterDB {
             int tableID = tableNameToIdMap[tableName];
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
-            printf("Reading {%d},{%d]", rid.pageNum, rid.slotNum);
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
             rbfm.closeFile(fh);
@@ -457,10 +456,14 @@ namespace PeterDB {
     bool RelationManager::TableExists(std::string tableName){
         auto it = tableNameToIdMap.find(tableName);
 
+
         if(it == tableNameToIdMap.end()){
             return false;
         }
         else{
+            for (auto i = tableNameToIdMap.begin(); i != tableNameToIdMap.end(); i++) {
+                std::cout << "Key: " << i->first << ", Value: " << i->second << std::endl;
+            }
             return true;
         }
     }
