@@ -97,7 +97,6 @@ namespace PeterDB {
         tableNameToIdMap.insert({tableName, index});
         RID rid;
         // Insert records into Table
-        rbfm.openFile(DEFAULT_TABLES_NAME, tableFileHandle);
         std::string tableIndex = std::to_string(index);
         std::string data[] = {tableIndex, tableName, tableName+".bin"};
         auto result = convert(tableRecordDescriptor, data);
@@ -312,7 +311,6 @@ namespace PeterDB {
         createTable(DEFAULT_TABLES_NAME, tableRecordDescriptor);
         createTable(DEFAULT_ATTRIBUTE_NAME, attributeRecordDescriptor);
 
-        rbfm.closeFile(tableFileHandle);
         return 0;
     }
 

@@ -709,6 +709,7 @@ namespace PeterDB {
                                     const std::vector<std::string> &attributeNames,
                                     RBFM_ScanIterator &rbfm_ScanIterator) {
 
+
         RID start;
         start.pageNum = 0;
         start.slotNum = 0;
