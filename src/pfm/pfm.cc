@@ -213,7 +213,7 @@ namespace PeterDB {
 
         fflush(myFile);
 
-       // printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
+        //printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
     }
 
     void FileHandle::initPage() {

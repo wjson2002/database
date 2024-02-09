@@ -762,7 +762,7 @@ namespace PeterDB {
                         pointer = nullptr;
                     }
                     else{
-                       pointer = (char*)d + 1;
+                        pointer = (char*)d + 1;
                     }
                     if(attrType == TypeInt)
                     {
@@ -825,6 +825,7 @@ namespace PeterDB {
                 if(compOp == NO_OP){
                     return true;
                 }
+                return false;
             }
             else{
                 int a = *value1;
@@ -844,6 +845,7 @@ namespace PeterDB {
                 if(compOp == NO_OP){
                     return true;
                 }
+                return false;
             }
             else{
                 float a = *value1;
@@ -862,6 +864,13 @@ namespace PeterDB {
     }
 
     bool RecordBasedFileManager::compareString(char* value1, char* value2, CompOp compOp){
+        if(value1 == nullptr || value2 == nullptr){
+            if(compOp == NO_OP){
+                return true;
+            }
+            return false;
+        }
+
         if (compOp == EQ_OP){return (strcmp(value1, value2) == 0);}
         else if (compOp == LT_OP){return (strcmp(value1, value2) < 0);}
         else if (compOp == LE_OP){return (strcmp(value1, value2) <= 0);}
