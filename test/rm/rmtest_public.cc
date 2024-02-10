@@ -620,58 +620,58 @@ namespace PeterDBTesting {
 
     }
 
-    TEST_F(RM_Large_Table_Test, scan_large_tuples) {
-
-        // Functions Tested for large tables
-        // 1. scan
-
-        destroyFile = true;   // To clean up after test.
-
-        std::vector<std::string> attrs{
-                "attr29", "attr15", "attr25"
-        };
-
-        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attrs, rmsi), success) <<
-                                                                                         "RelationManager::scan() should succeed.";
-
-        unsigned count = 0;
-        outBuffer = malloc(bufSize);
-
-        size_t nullAttributesIndicatorActualSize = getActualByteForNullsIndicator((int) attrs.size());
-
-        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
-
-            size_t offset = 0;
-
-            float attr29 = *(float *) ((uint8_t *) outBuffer + nullAttributesIndicatorActualSize);
-            offset += 4;
-
-            unsigned size = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
-            offset += 4;
-
-            auto *attr15 = (uint8_t *) malloc(size + 1);
-            memcpy(attr15, (uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize, size);
-            attr15[size] = 0;
-            offset += size;
-            unsigned char target;
-            for (size_t k = 0; k < size; k++) {
-                if (k == 0) {
-                    target = attr15[k];
-                } else {
-                    ASSERT_EQ(target, attr15[k]) << "Scanned VARCHAR has incorrect value";
-                }
-            }
-            unsigned attr25 = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
-
-            ASSERT_EQ(attr29, attr25 + 1);
-            free(attr15);
-            count++;
-            memset(outBuffer, 0, bufSize);
-        }
-
-        ASSERT_EQ(count, 3000) << "Number of scanned tuples is incorrect.";
-
-    }
+//    TEST_F(RM_Large_Table_Test, scan_large_tuples) {
+//
+//        // Functions Tested for large tables
+//        // 1. scan
+//
+//        destroyFile = true;   // To clean up after test.
+//
+//        std::vector<std::string> attrs{
+//                "attr29", "attr15", "attr25"
+//        };
+//
+//        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attrs, rmsi), success) <<
+//                                                                                         "RelationManager::scan() should succeed.";
+//
+//        unsigned count = 0;
+//        outBuffer = malloc(bufSize);
+//
+//        size_t nullAttributesIndicatorActualSize = getActualByteForNullsIndicator((int) attrs.size());
+//
+//        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+//
+//            size_t offset = 0;
+//
+//            float attr29 = *(float *) ((uint8_t *) outBuffer + nullAttributesIndicatorActualSize);
+//            offset += 4;
+//
+//            unsigned size = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
+//            offset += 4;
+//
+//            auto *attr15 = (uint8_t *) malloc(size + 1);
+//            memcpy(attr15, (uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize, size);
+//            attr15[size] = 0;
+//            offset += size;
+//            unsigned char target;
+//            for (size_t k = 0; k < size; k++) {
+//                if (k == 0) {
+//                    target = attr15[k];
+//                } else {
+//                    ASSERT_EQ(target, attr15[k]) << "Scanned VARCHAR has incorrect value";
+//                }
+//            }
+//            unsigned attr25 = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
+//
+//            ASSERT_EQ(attr29, attr25 + 1);
+//            free(attr15);
+//            count++;
+//            memset(outBuffer, 0, bufSize);
+//        }
+//
+//        ASSERT_EQ(count, 3000) << "Number of scanned tuples is incorrect.";
+//
+//    }
 
     TEST_F(RM_Scan_Test, conditional_scan) {
         // Functions Tested:

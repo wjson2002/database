@@ -258,7 +258,6 @@ namespace PeterDB {
 
         int index = 0;
         for (int i = 0; i < size; i++) {
-
             for (int j = 7; j >= 0; j--) {
                 int bit = ((bytes[i] & (1 << j)) != 0 ? 1 : 0);
                 bitArray[index] = bit;
@@ -492,8 +491,8 @@ namespace PeterDB {
             printf("Updating scenario 2");
             memcpy(buffer+offset, data, updatedRecordSize);
             //shift slot directory
-            memmove(buffer  + offset + updatedRecordSize,
-                    buffer  + offset + length,
+            memmove(buffer + offset + updatedRecordSize,
+                    buffer + offset + length,
                     PAGE_SIZE  - offset - length);
 
             for(int i = rid.slotNum + 1;i < numberOfRecords; i++){
@@ -693,7 +692,6 @@ namespace PeterDB {
                             break;
                         case TypeReal:
                             memcpy((char*)data + 1, dataPointer, sizeof(float));
-                            floatValue = *(float*)data;
                             break;
                         case TypeVarChar:
                             int *length = (int *) dataPointer;

@@ -16,7 +16,7 @@ namespace PeterDB {
                                                     {"column-name", TypeVarChar, 50},
                                                     {"column-type",TypeInt, sizeof(int)},
                                                     {"column-length",TypeInt, sizeof(int)},
-                                                        {"column-position",TypeInt, sizeof(int)}};
+                                                    {"column-position",TypeInt, sizeof(int)}};
 
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
@@ -98,7 +98,7 @@ namespace PeterDB {
         RID rid;
         // Insert records into Table
         std::string tableIndex = std::to_string(index);
-        std::string data[] = {tableIndex, tableName, tableName+".bin"};
+        std::string data[] = {tableIndex, tableName, tableName};
         auto result = convert(tableRecordDescriptor, data);
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
 
@@ -109,8 +109,8 @@ namespace PeterDB {
             std::string attrData[] = {  tableIndex,
                                         attr.name,
                                         std::to_string(attr.type),
-                                        std::to_string(position),
-                                        std::to_string(attr.length)};
+                                        std::to_string(attrs.size()),
+                                        std::to_string(position)};
 
             auto bytes = convert(attributeRecordDescriptor, attrData);
             rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
@@ -122,6 +122,9 @@ namespace PeterDB {
 
     RC RelationManager::deleteTable(const std::string &tableName) {
         printf("Delete Table:{%s}\n", tableName.c_str());
+        if(tableName == DEFAULT_TABLES_NAME){
+            return -1;
+        }
         if(TableExists(tableName)){
             RecordBasedFileManager::instance().destroyFile(tableName);
             int tableInt = tableNameToIdMap[tableName];
@@ -238,7 +241,70 @@ namespace PeterDB {
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
 
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        rbfm.printRecord(attrs, data, out);
+        int numOfNullBytes = ceil((double)attrs.size()/8);
+        char* dataPointer = (char*)data;
+
+        char nullIndicators[numOfNullBytes];
+        char* ptr = (char*)data;
+        for (std::size_t i = 0; i < 28; i++) {
+            printf("%02x ", *ptr);
+            if ((i + 1) % 10== 0) {
+                std::cout << std::endl;
+            }
+            ++ptr;
+        }
+
+        for (int i = 0; i < numOfNullBytes; i++) {
+            nullIndicators[i] = *dataPointer;
+            dataPointer++;
+        }
+
+        std::vector<int> bitArray = rbfm.serialize(nullIndicators, numOfNullBytes);
+        int index = 0;
+        for (const Attribute& attribute : attrs){
+            out << attribute.name.c_str();
+
+            if(bitArray[index] == 1){
+                out << ": NULL";
+                if(index == attrs.size() - 1){
+                    out<< "\n";
+                }
+                else{
+                    out<< ", ";
+                }
+                index ++;
+                continue;
+            }
+            switch (attribute.type) {
+                case TypeInt:
+                    out << ": " << *(int*)dataPointer;
+                    dataPointer +=4;
+                    break;
+                case TypeReal:
+
+                    out<< ": " << *(float*)dataPointer;
+                    dataPointer +=4;
+                    break;
+                case TypeVarChar:
+                    out << ": ";
+                    int* length= (int*)dataPointer;
+
+                    dataPointer += 4;
+                    for(int i = 0; i < *length; i++){
+                        out<<*dataPointer;
+                        dataPointer++;
+                    }
+                    break;
+            }
+            if(index == attrs.size() - 1){
+                out<< "\n";
+            }
+            else{
+                out<< ", ";
+            }
+            index ++;
+        }
+
         return 0;
     }
 
@@ -325,7 +391,7 @@ namespace PeterDB {
                     totalSize += sizeof(int);
                     break;
                 case TypeReal:
-                    totalSize += sizeof(float);
+                    totalSize += sizeof(int);
                     break;
                 case TypeVarChar:
                     totalSize += sizeof(int) + data[index].length();
@@ -336,7 +402,7 @@ namespace PeterDB {
 
         char* result = new char[totalSize + numOfNullBytes];
         char* resultPointer = result;
-
+        memset(result, 0 , totalSize + numOfNullBytes);
         for (int i = 0; i < numOfNullBytes; i++) {
             int temp = 0;
             memcpy(resultPointer, &temp, 1);
@@ -360,10 +426,11 @@ namespace PeterDB {
                 }
                     break;
                 case TypeVarChar: {
+
                     int length = (int)(data[index].length());
                     memcpy(resultPointer, &length, sizeof(int));
                     resultPointer += sizeof(int);
-
+                    printf("adding var char{%s} of len {%d}\n", data[index].c_str(), length);
                     memcpy(resultPointer, data[index].c_str(), length);
                     resultPointer += length;
                 }
@@ -371,6 +438,16 @@ namespace PeterDB {
             }
             index++;
         }
+        char* ptr = (char*) result;
+        printf("total Size: %d\n",totalSize);
+        for (std::size_t i = 0; i < totalSize + numOfNullBytes; ++i) {
+            printf("%02x ", *ptr);
+            if ((i + 1) % 10== 0) {
+                std::cout << std::endl;
+            }
+            ++ptr;
+        }
+
         return result;
     }
     Attribute RelationManager::convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data){
@@ -410,6 +487,7 @@ namespace PeterDB {
                 break;
             case 2:
                 attrtype = TypeVarChar;
+
                 result.length = 50;
                 break;
         }
@@ -470,7 +548,7 @@ namespace PeterDB {
 
         if(result == 0){
             std::vector<std::string> attributeNames = rbfmIterator.attributeNames;
-            if(attributeNames.size() == 0){
+            if(attributeNames.size() == 0 || attributeNames.size() == recordDescriptor.size()){
                 return 0;
             }
             else{
