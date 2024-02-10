@@ -10,7 +10,7 @@ namespace PeterDB {
     std::string DEFAULT_TABLES_NAME = "Tables";
     std::vector<Attribute> tableRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
                                                     {"table-name", TypeVarChar, 50},
-                                                    {"file-name",TypeVarChar, 80}};
+                                                    {"file-name",TypeVarChar, 50}};
     std::string DEFAULT_ATTRIBUTE_NAME = "Columns";
     std::vector<Attribute> attributeRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
                                                     {"column-name", TypeVarChar, 50},
@@ -104,12 +104,12 @@ namespace PeterDB {
 
         // Insert Record into Attributes
         rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
-        int position = 0;
+        int position = 1;
         for(auto attr: attrs){
             std::string attrData[] = {  tableIndex,
                                         attr.name,
                                         std::to_string(attr.type),
-                                        std::to_string(attrs.size() - 1),
+                                        std::to_string(attr.length),
                                         std::to_string(position)};
 
             auto bytes = convert(attributeRecordDescriptor, attrData);
@@ -122,7 +122,7 @@ namespace PeterDB {
 
     RC RelationManager::deleteTable(const std::string &tableName) {
         printf("Delete Table:{%s}\n", tableName.c_str());
-        if(tableName == DEFAULT_TABLES_NAME){
+        if(tableName == DEFAULT_TABLES_NAME || tableName == DEFAULT_ATTRIBUTE_NAME){
             return -1;
         }
         if(TableExists(tableName)){
@@ -241,69 +241,63 @@ namespace PeterDB {
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
 
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        int numOfNullBytes = ceil((double)attrs.size()/8);
-        char* dataPointer = (char*)data;
-
-        char nullIndicators[numOfNullBytes];
-        char* ptr = (char*)data;
-        for (std::size_t i = 0; i < 28; i++) {
-            printf("%02x ", *ptr);
-            if ((i + 1) % 10== 0) {
-                std::cout << std::endl;
-            }
-            ++ptr;
-        }
-
-        for (int i = 0; i < numOfNullBytes; i++) {
-            nullIndicators[i] = *dataPointer;
-            dataPointer++;
-        }
-
-        std::vector<int> bitArray = rbfm.serialize(nullIndicators, numOfNullBytes);
-        int index = 0;
-        for (const Attribute& attribute : attrs){
-            out << attribute.name.c_str();
-
-            if(bitArray[index] == 1){
-                out << ": NULL";
-                if(index == attrs.size() - 1){
-                    out<< "\n";
-                }
-                else{
-                    out<< ", ";
-                }
-                index ++;
-                continue;
-            }
-            switch (attribute.type) {
-                case TypeInt:
-                    out << ": " << *(int*)dataPointer;
-                    dataPointer +=4;
-                    break;
-                case TypeReal:
-
-                    out<< ": " << *(float*)dataPointer;
-                    dataPointer +=4;
-                    break;
-                case TypeVarChar:
-                    out << ": ";
-                    int* length= (int*)dataPointer;
-
-                    dataPointer += 4;
-                    for(int i = 0; i < *length; i++){
-                        out<<*dataPointer;
-                        dataPointer++;
-                    }
-                    break;
-            }
-            if(index == attrs.size() - 1){
-                out<< "\n";
-            }
-            else{
-                out<< ", ";
-            }
-            index ++;
-        }
+        rbfm.printRecord(attrs,data,out);
+//        int numOfNullBytes = ceil((double)attrs.size()/8);
+//        char* dataPointer = (char*)data;
+//
+//        char nullIndicators[numOfNullBytes];
+//        char* ptr = (char*)data;
+//
+//        for (int i = 0; i < numOfNullBytes; i++) {
+//            nullIndicators[i] = *dataPointer;
+//            dataPointer++;
+//        }
+//
+//        std::vector<int> bitArray = rbfm.serialize(nullIndicators, numOfNullBytes);
+//        int index = 0;
+//        for (const Attribute& attribute : attrs){
+//            out << attribute.name.c_str();
+//
+//            if(bitArray[index] == 1){
+//                out << ": NULL";
+//                if(index == attrs.size() - 1){
+//                    out<< "\n";
+//                }
+//                else{
+//                    out<< ", ";
+//                }
+//                index ++;
+//                continue;
+//            }
+//            switch (attribute.type) {
+//                case TypeInt:
+//                    out << ": " << *(int*)dataPointer;
+//                    dataPointer +=4;
+//                    break;
+//                case TypeReal:
+//
+//                    out<< ": " << *(float*)dataPointer;
+//                    dataPointer +=4;
+//                    break;
+//                case TypeVarChar:
+//                    out << ": ";
+//                    int* length= (int*)dataPointer;
+//
+//                    dataPointer += 4;
+//                    for(int i = 0; i < *length; i++){
+//                        out<<*dataPointer;
+//                        dataPointer++;
+//                    }
+//                    break;
+//            }
+//            if(index == attrs.size() - 1){
+//                out<< "\n";
+//            }
+//            else{
+//                out<< ", ";
+//            }
+//            index ++;
+//        }
 
         return 0;
     }
@@ -426,11 +420,9 @@ namespace PeterDB {
                 }
                     break;
                 case TypeVarChar: {
-
                     int length = (int)(data[index].length());
                     memcpy(resultPointer, &length, sizeof(int));
                     resultPointer += sizeof(int);
-                    printf("adding var char{%s} of len {%d}\n", data[index].c_str(), length);
                     memcpy(resultPointer, data[index].c_str(), length);
                     resultPointer += length;
                 }
@@ -438,15 +430,7 @@ namespace PeterDB {
             }
             index++;
         }
-        char* ptr = (char*) result;
-        printf("total Size: %d\n",totalSize);
-        for (std::size_t i = 0; i < totalSize + numOfNullBytes; ++i) {
-            printf("%02x ", *ptr);
-            if ((i + 1) % 10== 0) {
-                std::cout << std::endl;
-            }
-            ++ptr;
-        }
+
 
         return result;
     }
