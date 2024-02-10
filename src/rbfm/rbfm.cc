@@ -177,13 +177,20 @@ namespace PeterDB {
             }
 
             //Find total length of elements to create offset for inserted record
-            for(int i = 0;i < numOfRecords; i++) {
+            int iter = numOfRecords;
+            for(int i = 0;i < iter; i++) {
                 int l;
                 memmove(&l, buffer + 2 + (8 * i) + sizeof(int), sizeof(int));
                 if(l == -1){
                     l = MIN_RECORD_SIZE;
                 }
-                totalLength += l;
+                if(l > 0 && l < PAGE_SIZE){
+                    totalLength += l;
+                }
+                else{
+                    iter+=1;
+                }
+
             }
 
             //update offset
@@ -416,9 +423,9 @@ namespace PeterDB {
         memmove(buffer, &newFileSize, sizeof(short));
         memmove(buffer + 2, &updatedNumberOfRecords, sizeof(char));
 
-        memset(buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, -2, sizeof(int));
+        memset(buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
 
-        memset(buffer + 2 + sizeof(int) + (slotNumber) * 8, -2, sizeof(int));
+        memset(buffer + 2 + sizeof(int) + (slotNumber) * 8, 0, sizeof(int));
 
 
         //Shift slot directory
@@ -429,7 +436,7 @@ namespace PeterDB {
 
         //update offsets for shifted slots
 
-        for(int i = 1;i< MAX_SLOTS;i++){
+        for(int i = 1;i< numberOfRecords;i++){
             int tempLen = 0;
             memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i + slotNumber) * 8,sizeof(int));
             memmove(&tempLen, buffer + 2 + sizeof(int) + (i + slotNumber) * 8,sizeof(int));
