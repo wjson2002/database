@@ -527,30 +527,71 @@ namespace PeterDB {
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
 
         int result = rbfmIterator.getNextRecord(rid, data);
+        int size = 0;
+        for (auto a: recordDescriptor) {
+            size += a.length;
+        }
 
-        if(result == 0){
+        if (result == 0) {
             std::vector<std::string> attributeNames = rbfmIterator.attributeNames;
-            if(attributeNames.size() == 0 || attributeNames.size() == recordDescriptor.size()){
+            if (attributeNames.size() == 0 || attributeNames.size() == recordDescriptor.size()) {
                 return 0;
-            }
-            else{
-                RelationManager& rm = RelationManager::instance();
-                char* pointer = (char*)data;
-                for(auto attr: attributeNames){
-                    rm.readAttribute(rbfmIterator.fileName, rid, attr, pointer);
-                    for(auto a : recordDescriptor){
-                        if(a.name == attr){
-                            pointer += a.length;
+            } else {
+                RelationManager &rm = RelationManager::instance();
+                RecordBasedFileManager &rbfm = RecordBasedFileManager::instance();
+                char *resultPointer = (char *) data + 1;
+                void *readData[size];
+
+                for (const auto &attr: attributeNames) {
+                    for (const auto &a: recordDescriptor) {
+                        if (a.name == attr) {
+                            AttrType type = a.type;
+                            rm.readAttribute(rbfmIterator.fileName, rid, attr, readData);
+                            char *tempPointer = (char *) readData;
+                            char *nullbit;
+                            memcpy(&nullbit, readData, 1);
+                            tempPointer += 1;
+                            switch (type) {
+                                case 0:
+                                    memcpy(resultPointer, tempPointer, 4);
+                                    resultPointer += 4;
+                                    break;
+                                case 1:
+                                    memcpy(resultPointer, tempPointer, 4);
+                                    resultPointer += 4;
+                                    break;
+                                case 2:
+                                    int *len = (int *) tempPointer;
+                                    tempPointer += 4;
+
+                                    memcpy(resultPointer, &*len, 4);
+                                    resultPointer += 4;
+                                    memcpy(resultPointer, tempPointer, *len);
+                                    break;
+                            }
+                            break;
                         }
                     }
                 }
+                return 0;
             }
-
         }
-        else{
-            return RM_EOF;
-        }
+        return RM_EOF;
     }
+//                for(const auto& attr: attributeNames){
+//                    for(const auto& a : recordDescriptor){
+//                        void* temp[a.length];
+//                        if(a.name == attr){
+//                            rm.readAttribute(rbfmIterator.fileName, rid, attr, temp);
+//                            memcpy(pointer, temp, a.length +1);
+//                            pointer += 5;
+//                        }
+//                    }
+//                }
+
+
+
+
 
     RC RM_ScanIterator::close() {
         rbfmIterator.close();

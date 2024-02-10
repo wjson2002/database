@@ -22,8 +22,12 @@ Debugger is very helpful for visualizing your code as seen in the image it displ
 I used this functionality to view the record values I save/write to the page.
 - ![img_6.png](img_6.png)
 Clion debugger shows me which line is seg faulting, which speeds up debugging process.
+  Project 2
 - ![img_7.png](img_7.png)
 - Here I check the bytes in my buffer to ensure that my updateRecord and readRecord and properly updating/reading for Project 2.
+
+
+![img_8.png](img_8.png)
 ### 3. Using Valgrind
 - Describe how you use Valgrind to detect memory leaks and other problems in your code and show screenshot of the Valgrind report.
 ![img_1.png](img_1.png)

@@ -698,7 +698,7 @@ namespace PeterDB {
                             memcpy((char*)data + 1, dataPointer, sizeof(int));
                             break;
                         case TypeReal:
-                            memcpy((char*)data + 1, dataPointer, sizeof(float));
+                            memcpy((char*)data + 1, dataPointer, sizeof(int));
                             break;
                         case TypeVarChar:
                             int *len= (int *) dataPointer;
@@ -876,9 +876,6 @@ namespace PeterDB {
         }
         else if(type == TypeReal){
             if(value1 == nullptr || value2 == nullptr){
-                if(compOp == NO_OP){
-                    return true;
-                }
                 return false;
             }
             else{

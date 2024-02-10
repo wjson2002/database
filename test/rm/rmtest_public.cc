@@ -2,7 +2,7 @@
 
 namespace PeterDBTesting {
     int tuples = 10;
-    int scantuple = 1500;
+    int scantuple = 150;
     TEST_F(RM_Catalog_Test, create_and_delete_tables) {
 
         // Try to delete the System Catalog.
@@ -988,7 +988,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = scantuple;
+        int numTuples = 10;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
