@@ -149,17 +149,12 @@ namespace PeterDB {
             return 0;
         }
 
-        if(TableExists(tableName)){
-            int tableID = tableNameToIdMap[tableName];
-            //Need to get table ID
-            std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
-            attrs = recordDescriptor;
-            return 0;
-        }
-        else
-        {
-            return -1;
-        }
+
+        int tableID = tableNameToIdMap[tableName];
+        //Need to get table ID
+        std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
+        attrs = recordDescriptor;
+        return 0;
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
@@ -461,9 +456,6 @@ namespace PeterDB {
             return false;
         }
         else{
-            for (auto i = tableNameToIdMap.begin(); i != tableNameToIdMap.end(); i++) {
-                std::cout << "Key: " << i->first << ", Value: " << i->second << std::endl;
-            }
             return true;
         }
     }
