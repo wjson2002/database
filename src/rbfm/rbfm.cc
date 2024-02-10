@@ -410,7 +410,7 @@ namespace PeterDB {
             isTombstone = true;
             memmove( &tombstoneRID.pageNum,buffer + offset, 4);
             memmove( &tombstoneRID.slotNum,buffer+offset+4, 2);
-            printf("Record is tombstone:{%d},{%d}\n",tombstoneRID.pageNum, tombstoneRID.slotNum);
+            //printf("Record is tombstone:{%d},{%d}\n",tombstoneRID.pageNum, tombstoneRID.slotNum);
 
         }
         //Erase record, set all bytes to 0 (not necessary)
@@ -444,7 +444,7 @@ namespace PeterDB {
             if((tempLen > 0 && tempLen <= PAGE_SIZE) || tempLen == -1){
                 unsigned newOffset = offset - length;
                 memmove(buffer + 2 + 2 * sizeof(int) + (i + slotNumber) * 8,&newOffset,sizeof(int));
-                printf("Moving slot{%d}of size{%d} dest %d to src %d\n",i+slotNumber,tempLen,offset,offset-length);
+                //printf("Moving slot{%d}of size{%d} dest %d to src %d\n",i+slotNumber,tempLen,offset,offset-length);
             }
             if(tempLen == 0){
                 numberOfRecords += 1;
@@ -830,7 +830,7 @@ namespace PeterDB {
 
                         } else if (attrType == TypeVarChar) {
                             //printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
-                            if (rbfm.compareString((char *) value, (char *) pointer, compOp)) {
+                            if (rbfm.compareString((char *) pointer, (char *) value, compOp)) {
                                 // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                                 rid = currentRID;
@@ -859,9 +859,6 @@ namespace PeterDB {
         }
         if(type == TypeInt){
             if(value1 == nullptr || value2 == nullptr){
-                if(compOp == NO_OP){
-                    return true;
-                }
                 return false;
             }
             else{

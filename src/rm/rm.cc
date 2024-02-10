@@ -430,7 +430,6 @@ namespace PeterDB {
             }
             index++;
         }
-        }
         return result;
     }
     Attribute RelationManager::convertBytesToAttributes(std::vector<Attribute>& recordDescriptor, void* data){
