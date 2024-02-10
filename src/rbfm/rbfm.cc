@@ -429,7 +429,7 @@ namespace PeterDB {
 
         //update offsets for shifted slots
 
-        for(int i = 1;i< numberOfRecords;i++){
+        for(int i = 1;i< MAX_SLOTS;i++){
             int tempLen = 0;
             memmove(&offset, buffer + 2 + 2 * sizeof(int) + (i + slotNumber) * 8,sizeof(int));
             memmove(&tempLen, buffer + 2 + sizeof(int) + (i + slotNumber) * 8,sizeof(int));
