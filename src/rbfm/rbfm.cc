@@ -687,7 +687,7 @@ namespace PeterDB {
                     //Allocate 1 byte for null
                     if(bitArray[index] == 1){
                         index ++;
-                        memset(data, 1, 1);
+                        memset(data, 128u, 1);
                         return 0;
                     }
                     else{
@@ -701,10 +701,11 @@ namespace PeterDB {
                             memcpy((char*)data + 1, dataPointer, sizeof(float));
                             break;
                         case TypeVarChar:
-                            int *length = (int *) dataPointer;
+                            int *len= (int *) dataPointer;
                             dataPointer += 4;
-                            memcpy((char*)data + 1, dataPointer, *length);
-                            for (int i = 0; i < *length; i++) {
+                            memcpy((char*)data + 1, &*len, sizeof(int));
+                            memcpy((char*)data + 5, dataPointer, *len);
+                            for (int i = 0; i < *len; i++) {
                                 dataPointer++;
                             }
                             break;
