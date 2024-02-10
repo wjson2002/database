@@ -109,7 +109,7 @@ namespace PeterDB {
             std::string attrData[] = {  tableIndex,
                                         attr.name,
                                         std::to_string(attr.type),
-                                        std::to_string(attrs.size()),
+                                        std::to_string(attrs.size() - 1),
                                         std::to_string(position)};
 
             auto bytes = convert(attributeRecordDescriptor, attrData);
