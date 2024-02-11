@@ -538,19 +538,29 @@ namespace PeterDB {
                 return 0;
             } else {
                 RelationManager &rm = RelationManager::instance();
-                char *resultPointer = (char *) data + 1;
+                char *resultPointer = (char *)data + 1;
                 void *readData[size];
                 char strArray[8] = {'0','0','0','0','0','0','0','0'};
-                int index = 0;
+                int index = 7;
                 for (const auto &attr: attributeNames) {
                     for (const auto &a: recordDescriptor) {
                         if (a.name == attr) {
                             AttrType type = a.type;
                             rm.readAttribute(rbfmIterator.fileName, rid, attr, readData);
-                            char *tempPointer = (char *) readData;
-                            char *nullbit;
-                            memcpy(&nullbit, readData, 1);
-                            if(*(int*)nullbit != '128u'){
+                            char *tempPointer = (char *)readData;
+                            char *nullbit = (char*)&readData;
+
+                            int intValue = static_cast<int>(*nullbit);
+
+                            if(intValue == 1){
+                                memset(data, 1, 1);
+                               // data = &byteValue;
+                                if ((*(char *) data) >> 7 & 1u) {
+                                    printf("Setting success\n");
+                                }
+
+                            }
+                            else{
                                 tempPointer += 1;
                                 switch (type) {
                                     case 0:
@@ -571,15 +581,13 @@ namespace PeterDB {
                                         break;
                                 }
                             }
-                            else{
-                                strArray[index]='1';
-                            }
 
                             break;
                         }
                     }
-                    index ++;
+                    index --;
                 }
+
                 return 0;
             }
         }

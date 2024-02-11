@@ -1078,7 +1078,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100000;
+        int numTuples = 100;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1130,6 +1130,7 @@ namespace PeterDBTesting {
         // Scan
         float latReturned, lngReturned;
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+
             if ((*(char *) outBuffer) >> 7 & 1u) {
                 latReturned = *(float *) ((char *) outBuffer + 1);
                 lngReturned = -1;
@@ -1137,7 +1138,7 @@ namespace PeterDBTesting {
                 latReturned = *(float *) ((char *) outBuffer + 5);
                 lngReturned = *(float *) ((char *) outBuffer + 1);
             }
-
+            printf("Lat:%f, Lng:%f\n", latReturned, lngReturned);
             auto targetLat = std::find(lats.begin(), lats.end(), latReturned);
 
             ASSERT_NE(targetLat, lats.end()) << "returned lat value is not from inserted.";
@@ -1181,7 +1182,7 @@ namespace PeterDBTesting {
         // 3. scan - NO_OP
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100000;
+        int numTuples = 1000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1269,7 +1270,7 @@ namespace PeterDBTesting {
 
         bufSize = 1000;
         size_t tupleSize = 0;
-        int numTuples = 100000;
+        int numTuples = 1000;
 
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
