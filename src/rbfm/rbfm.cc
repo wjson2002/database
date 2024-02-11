@@ -681,13 +681,13 @@ namespace PeterDB {
 
             std::vector<int> bitArray = serialize(nullIndicators, numOfNullBytes);
             int index = 0;
+            float floatValue;
             for (const Attribute& attribute : recordDescriptor){
-
                 if(attribute.name == attributeName){
                     //Allocate 1 byte for null
                     if(bitArray[index] == 1){
                         index ++;
-                        memset(data, 1, 1);
+                        memset(data, 128u, 1);
                         return 0;
                     }
                     else{
@@ -732,7 +732,7 @@ namespace PeterDB {
                         }
                         break;
                 }
-                index++;
+                index ++;
             }
             free(readBuffer);
             return 0;
@@ -901,9 +901,7 @@ namespace PeterDB {
         if (value1 == nullptr || value2 == nullptr) {
             return (compOp == NO_OP);
         }
-        if(value1 == ""){
-            return true;
-        }
+
         printf("comparing {%s}, {%s}: ", value1, value2);
 
         // Use strcmp for string comparisons

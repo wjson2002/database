@@ -1078,7 +1078,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100;
+        int numTuples = 50;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1135,9 +1135,11 @@ namespace PeterDBTesting {
                 latReturned = *(float *) ((char *) outBuffer + 1);
                 lngReturned = -1;
             } else {
+
                 latReturned = *(float *) ((char *) outBuffer + 5);
                 lngReturned = *(float *) ((char *) outBuffer + 1);
             }
+            printf("%u\n",(*(char *) outBuffer) >> 7 & 1u));
             printf("Lat:%f, Lng:%f\n", latReturned, lngReturned);
             auto targetLat = std::find(lats.begin(), lats.end(), latReturned);
 

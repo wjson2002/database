@@ -553,10 +553,14 @@ namespace PeterDB {
                             int intValue = static_cast<int>(*nullbit);
 
                             if(intValue == 1){
-                                memset(data, 1, 1);
-                               // data = &byteValue;
+                                char byteValue = 0b01010101;
+                                data = &byteValue;
+
+                                // Set the MSB to 1
+                                *(char*)data |= 0x80;
                                 if ((*(char *) data) >> 7 & 1u) {
-                                    printf("Setting success\n");
+                                    printf("Setting success");
+                                    printf("%u\n",(*(char *) data) >> 7 & 1u);
                                 }
 
                             }
