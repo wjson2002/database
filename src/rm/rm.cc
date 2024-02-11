@@ -99,7 +99,7 @@ namespace PeterDB {
         std::string data[] = {tableIndex, tableName, tableName};
         auto result = convert(tableRecordDescriptor, data);
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-
+        free(result);
         // Insert Record into Attributes
         rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
         int position = 1;
@@ -113,6 +113,7 @@ namespace PeterDB {
             auto bytes = convert(attributeRecordDescriptor, attrData);
             rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
             position += 1;
+            free(bytes);
         }
         rbfm.closeFile(attributeFileHandle);
         return 0;

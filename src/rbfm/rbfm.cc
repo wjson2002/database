@@ -573,7 +573,7 @@ namespace PeterDB {
 
                 fileHandle.writePage(rid.pageNum, buffer);
 
-                //free(buffer);
+                free(buffer);
                 return 0;
             }
                 //Scenario 3.2: shift all slots to add space to updated slot
@@ -649,6 +649,7 @@ namespace PeterDB {
 
         if(length == 0 || length >= PAGE_SIZE || length < -1){
             // printf("Record does not exist\n");
+            free(readBuffer);
             return -1;
         }
 
@@ -688,6 +689,7 @@ namespace PeterDB {
                     if(bitArray[index] == 1){
                         index ++;
                         memset(data, 128u, 1);
+                        free(readBuffer);
                         return 0;
                     }
                     else{
@@ -738,6 +740,7 @@ namespace PeterDB {
             return 0;
         }
         else{
+            free(readBuffer);
             return -1;
         }
 
