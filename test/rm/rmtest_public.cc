@@ -1,8 +1,6 @@
 #include "test/utils/rm_test_util.h"
 
 namespace PeterDBTesting {
-    int tuples = 10;
-    int scantuple = 150;
     TEST_F(RM_Catalog_Test, create_and_delete_tables) {
 
         // Try to delete the System Catalog.
@@ -324,7 +322,7 @@ namespace PeterDBTesting {
         // Functions Tested
         // 1. Simple scan
 
-        int numTuples = scantuple;
+        int numTuples = 100;
         size_t tupleSize = 0;
         inBuffer = malloc(200);
         outBuffer = malloc(200);
@@ -427,7 +425,7 @@ namespace PeterDBTesting {
         createLargeTable(tableName);
 
         inBuffer = malloc(bufSize);
-        int numTuples =  tuples;
+        int numTuples = 5000;
 
         // GetAttributes
         ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
@@ -460,7 +458,7 @@ namespace PeterDBTesting {
         // 1. read tuple
 
         size_t size = 0;
-        int numTuples = tuples;
+        int numTuples = 5000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -497,9 +495,9 @@ namespace PeterDBTesting {
         // 1. update tuple
         // 2. read tuple
 
-        int numTuples =  tuples;
-        unsigned numTuplesToUpdate1 = tuples / 5;
-        unsigned numTuplesToUpdate2 = tuples / 5;
+        int numTuples = 5000;
+        unsigned numTuplesToUpdate1 = 2000;
+        unsigned numTuplesToUpdate2 = 2000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -591,8 +589,8 @@ namespace PeterDBTesting {
         // 1. delete tuple
         // 2. read tuple
 
-        unsigned numTuples = tuples;
-        unsigned numTuplesToDelete = 5;
+        unsigned numTuples = 5000;
+        unsigned numTuplesToDelete = 2000;
         outBuffer = malloc(bufSize);
 
         readRIDsFromDisk(rids, numTuples);
@@ -620,58 +618,58 @@ namespace PeterDBTesting {
 
     }
 
-//    TEST_F(RM_Large_Table_Test, scan_large_tuples) {
-//
-//        // Functions Tested for large tables
-//        // 1. scan
-//
-//        destroyFile = true;   // To clean up after test.
-//
-//        std::vector<std::string> attrs{
-//                "attr29", "attr15", "attr25"
-//        };
-//
-//        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attrs, rmsi), success) <<
-//                                                                                         "RelationManager::scan() should succeed.";
-//
-//        unsigned count = 0;
-//        outBuffer = malloc(bufSize);
-//
-//        size_t nullAttributesIndicatorActualSize = getActualByteForNullsIndicator((int) attrs.size());
-//
-//        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
-//
-//            size_t offset = 0;
-//
-//            float attr29 = *(float *) ((uint8_t *) outBuffer + nullAttributesIndicatorActualSize);
-//            offset += 4;
-//
-//            unsigned size = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
-//            offset += 4;
-//
-//            auto *attr15 = (uint8_t *) malloc(size + 1);
-//            memcpy(attr15, (uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize, size);
-//            attr15[size] = 0;
-//            offset += size;
-//            unsigned char target;
-//            for (size_t k = 0; k < size; k++) {
-//                if (k == 0) {
-//                    target = attr15[k];
-//                } else {
-//                    ASSERT_EQ(target, attr15[k]) << "Scanned VARCHAR has incorrect value";
-//                }
-//            }
-//            unsigned attr25 = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
-//
-//            ASSERT_EQ(attr29, attr25 + 1);
-//            free(attr15);
-//            count++;
-//            memset(outBuffer, 0, bufSize);
-//        }
-//
-//        ASSERT_EQ(count, 3000) << "Number of scanned tuples is incorrect.";
-//
-//    }
+    TEST_F(RM_Large_Table_Test, scan_large_tuples) {
+
+        // Functions Tested for large tables
+        // 1. scan
+
+        destroyFile = true;   // To clean up after test.
+
+        std::vector<std::string> attrs{
+                "attr29", "attr15", "attr25"
+        };
+
+        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attrs, rmsi), success) <<
+                                                                                         "RelationManager::scan() should succeed.";
+
+        unsigned count = 0;
+        outBuffer = malloc(bufSize);
+
+        size_t nullAttributesIndicatorActualSize = getActualByteForNullsIndicator((int) attrs.size());
+
+        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+
+            size_t offset = 0;
+
+            float attr29 = *(float *) ((uint8_t *) outBuffer + nullAttributesIndicatorActualSize);
+            offset += 4;
+
+            unsigned size = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
+            offset += 4;
+
+            auto *attr15 = (uint8_t *) malloc(size + 1);
+            memcpy(attr15, (uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize, size);
+            attr15[size] = 0;
+            offset += size;
+            unsigned char target;
+            for (size_t k = 0; k < size; k++) {
+                if (k == 0) {
+                    target = attr15[k];
+                } else {
+                    ASSERT_EQ(target, attr15[k]) << "Scanned VARCHAR has incorrect value";
+                }
+            }
+            unsigned attr25 = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
+
+            ASSERT_EQ(attr29, attr25 + 1);
+            free(attr15);
+            count++;
+            memset(outBuffer, 0, bufSize);
+        }
+
+        ASSERT_EQ(count, 3000) << "Number of scanned tuples is incorrect.";
+
+    }
 
     TEST_F(RM_Scan_Test, conditional_scan) {
         // Functions Tested:
@@ -679,7 +677,7 @@ namespace PeterDBTesting {
 
         bufSize = 100;
         size_t tupleSize = 0;
-        unsigned numTuples = scantuple;
+        unsigned numTuples = 1500;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
@@ -730,7 +728,7 @@ namespace PeterDBTesting {
 
         bufSize = 200;
         size_t tupleSize = 0;
-        unsigned numTuples = scantuple;
+        unsigned numTuples = 1500;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
@@ -938,7 +936,7 @@ namespace PeterDBTesting {
 
         bufSize = 1000;
         size_t tupleSize = 0;
-        int numTuples = 100;
+        int numTuples = 100000;
 
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
@@ -988,7 +986,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 10;
+        int numTuples = 100000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1077,7 +1075,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = scantuple;
+        int numTuples = 100000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1180,7 +1178,7 @@ namespace PeterDBTesting {
         // 3. scan - NO_OP
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = scantuple;
+        int numTuples = 100000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;

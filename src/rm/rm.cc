@@ -538,10 +538,10 @@ namespace PeterDB {
                 return 0;
             } else {
                 RelationManager &rm = RelationManager::instance();
-                RecordBasedFileManager &rbfm = RecordBasedFileManager::instance();
                 char *resultPointer = (char *) data + 1;
                 void *readData[size];
-
+                char strArray[8] = {'0','0','0','0','0','0','0','0'};
+                int index = 0;
                 for (const auto &attr: attributeNames) {
                     for (const auto &a: recordDescriptor) {
                         if (a.name == attr) {
@@ -550,28 +550,35 @@ namespace PeterDB {
                             char *tempPointer = (char *) readData;
                             char *nullbit;
                             memcpy(&nullbit, readData, 1);
-                            tempPointer += 1;
-                            switch (type) {
-                                case 0:
-                                    memcpy(resultPointer, tempPointer, 4);
-                                    resultPointer += 4;
-                                    break;
-                                case 1:
-                                    memcpy(resultPointer, tempPointer, 4);
-                                    resultPointer += 4;
-                                    break;
-                                case 2:
-                                    int *len = (int *) tempPointer;
-                                    tempPointer += 4;
+                            if(*(int*)nullbit != '128u'){
+                                tempPointer += 1;
+                                switch (type) {
+                                    case 0:
+                                        memcpy(resultPointer, tempPointer, 4);
+                                        resultPointer += 4;
+                                        break;
+                                    case 1:
+                                        memcpy(resultPointer, tempPointer, 4);
+                                        resultPointer += 4;
+                                        break;
+                                    case 2:
+                                        int *len = (int *) tempPointer;
+                                        tempPointer += 4;
 
-                                    memcpy(resultPointer, &*len, 4);
-                                    resultPointer += 4;
-                                    memcpy(resultPointer, tempPointer, *len);
-                                    break;
+                                        memcpy(resultPointer, &*len, 4);
+                                        resultPointer += 4;
+                                        memcpy(resultPointer, tempPointer, *len);
+                                        break;
+                                }
                             }
+                            else{
+                                strArray[index]='1';
+                            }
+
                             break;
                         }
                     }
+                    index ++;
                 }
                 return 0;
             }
