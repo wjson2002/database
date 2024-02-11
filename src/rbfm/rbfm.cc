@@ -831,7 +831,7 @@ namespace PeterDB {
                         } else if (attrType == TypeVarChar) {
                             char* valuePointer = (char*)value;
                             char* pointerPointer = pointer;
-                            int* lenOfValue = (int*)value;
+
                             valuePointer+=4;
                             pointerPointer+=4;
 
