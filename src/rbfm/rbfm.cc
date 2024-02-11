@@ -703,7 +703,7 @@ namespace PeterDB {
                         case TypeVarChar:
                             int *len= (int *) dataPointer;
                             dataPointer += 4;
-                            memcpy((char*)data + 1, &*len, sizeof(int));
+                            memcpy((char*)data + 1, len, sizeof(int));
                             memcpy((char*)data + 5, dataPointer, *len);
                             for (int i = 0; i < *len; i++) {
                                 dataPointer++;
@@ -830,18 +830,32 @@ namespace PeterDB {
 
                         } else if (attrType == TypeVarChar) {
                             char* valuePointer = (char*)value;
+                            if(pointer == nullptr){
+                                return true;
+                            }
                             char* pointerPointer = pointer;
-
+                            int strLen;
+                            memcpy(&strLen, pointer, sizeof(int));
+                            printf("Real len{%d} ",strLen);
+                            char* string = new char[strLen + 1];
                             valuePointer+=4;
                             pointerPointer+=4;
+                            if(strLen > 0){
+                                memmove(string, pointerPointer, strLen);
+                                string[strLen] = '\0';
 
-                            if (rbfm.compareString((char *) pointerPointer, (char *) valuePointer, compOp)) {
-                                // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
-                                //printf("True\n");
+                            }
+                            else{
+                                string[strLen] = '\0';
+                            }
+
+                            if (rbfm.compareString((char *) string, (char *) valuePointer, compOp)) {
+                                printf("getting rid {%d,%d}", currentRID.pageNum,currentRID.slotNum);
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                                 rid = currentRID;
                                 currentRID.slotNum += 1;
                                 rbfm.closeFile(fileHandle);
+                                //free(string);
                                 return 0;
                             }
                             //printf("FALSE\n");
@@ -906,13 +920,20 @@ namespace PeterDB {
         if (value1 == nullptr || value2 == nullptr) {
             return (compOp == NO_OP);
         }
-
+        if(strlen(value1) == 0){
+            printf("empty string");
+            return false;
+        }
+        for (size_t i = 0; i < strlen(value1); ++i) {
+            printf("%02X ", static_cast<unsigned char>(value1[i]));
+        }
 
         // Print as String
-
-        printf("comparing {%s}, {%s}: ", value1, value2);
-
         int result = strcmp(value1, value2);
+        printf("comparing {%s}, {%s} , {%d}: %zu", value1, value2,result, strlen(value1));
+        if(checkString(value1, strlen(value1))){
+            return false;
+        }
 
         switch (compOp) {
             case EQ_OP: return (result == 0);
@@ -925,6 +946,15 @@ namespace PeterDB {
             default: return false;
         }
 
+    }
+
+    bool RecordBasedFileManager::checkString(const char* string, size_t len) {
+        for (size_t i = 0; i < len; ++i) {
+            if (string[i] != '\xFF') {
+                return false;
+            }
+        }
+        return true;
     }
 } // namespace PeterDB
 

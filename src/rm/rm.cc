@@ -36,7 +36,7 @@ namespace PeterDB {
 
     RC RelationManager::createCatalog() {
         //Create File for tables & attributes
-        printf("Creating Catalog\n");
+        //printf("Creating Catalog\n");
         if(this->CatalogActive){
             //printf("Catalog already created\n");
             return -1;
@@ -48,9 +48,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
-
-        printf("Deleting Catalog\n");
-
+        //printf("Deleting Catalog\n");
         if(CatalogActive == false){
             //printf("Catalog not active\n");
             return -1;
@@ -66,7 +64,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
-        printf("Creating new Table: {%s}\n", tableName.c_str());
+        //printf("Creating new Table: {%s}\n", tableName.c_str());
         if(this->CatalogActive == false){
             return -1;
         }
@@ -140,8 +138,6 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        printf("Getting table {%s}\n", tableName.c_str());
-
         if(tableName == DEFAULT_TABLES_NAME){
             attrs = tableRecordDescriptor;
             return 0;

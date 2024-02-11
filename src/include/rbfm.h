@@ -162,7 +162,7 @@ namespace PeterDB {
         template <typename T>
         bool compareNums(T* value1, T* value2, const CompOp compOp, AttrType type);
         bool compareString(char* value1, char* value2, CompOp compOp);
-
+        bool checkString(const char* string, size_t len);
     protected:
         RecordBasedFileManager();                                                   // Prevent construction
         ~RecordBasedFileManager();                                                  // Prevent unwanted destruction

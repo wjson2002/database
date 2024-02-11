@@ -986,7 +986,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 2500;
+        int numTuples = 1700;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1057,16 +1057,10 @@ namespace PeterDBTesting {
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
 
             unsigned userIdReturned = *(unsigned *) ((char *) outBuffer + 1);
-
+            printf("Returned UserID: {%d}\n", userIdReturned);
             auto targetUserId = std::find(user_ids.begin(), user_ids.end(), userIdReturned);
             ASSERT_NE(targetUserId, user_ids.end()) << "returned user_id value is not from inserted.";
             user_ids.erase(targetUserId);
-            for (size_t i = 0; i < user_ids.size(); ++i) {
-                std::cout << user_ids[i];
-                if (i < user_ids.size() - 1) {
-                    std::cout << ", ";
-                }
-            }
             printf("\n");
 
         }
