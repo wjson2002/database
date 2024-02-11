@@ -919,7 +919,7 @@ namespace PeterDB {
             case EQ_OP: return (result == 0);
             case LT_OP: return (result < 0);
             case LE_OP: return (result <= 0);
-            case GT_OP: return (result >= 0);
+            case GT_OP: return (result > 0);
             case GE_OP: return (result >= 0);
             case NE_OP: return (result != 0);
             case NO_OP: return true;
