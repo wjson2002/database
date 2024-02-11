@@ -201,7 +201,7 @@ namespace PeterDB {
 
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
-        FileHandle fh = tableIDmap[tableID];
+        FileHandle fh;
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
         rbfm.openFile(tableName, fh);
         rbfm.updateRecord(fh, recordD, data, rid);
@@ -214,7 +214,7 @@ namespace PeterDB {
         if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
-            FileHandle fh = tableIDmap[tableID];
+            FileHandle fh;
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             printf("readFile %s\n", tableName.c_str());
             rbfm.openFile(tableName, fh);
@@ -449,7 +449,6 @@ namespace PeterDB {
 
     bool RelationManager::TableExists(std::string tableName){
         auto it = tableNameToIdMap.find(tableName);
-
 
         if(it == tableNameToIdMap.end()){
             return false;
