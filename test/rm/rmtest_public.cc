@@ -1057,12 +1057,17 @@ namespace PeterDBTesting {
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
 
             unsigned userIdReturned = *(unsigned *) ((char *) outBuffer + 1);
-            if(userIdReturned == 625 || userIdReturned==739){
 
-            }
             auto targetUserId = std::find(user_ids.begin(), user_ids.end(), userIdReturned);
             ASSERT_NE(targetUserId, user_ids.end()) << "returned user_id value is not from inserted.";
             user_ids.erase(targetUserId);
+            for (size_t i = 0; i < user_ids.size(); ++i) {
+                std::cout << user_ids[i];
+                if (i < user_ids.size() - 1) {
+                    std::cout << ", ";
+                }
+            }
+            printf("\n");
 
         }
 
@@ -1139,7 +1144,7 @@ namespace PeterDBTesting {
                 latReturned = *(float *) ((char *) outBuffer + 5);
                 lngReturned = *(float *) ((char *) outBuffer + 1);
             }
-            printf("%u\n",(*(char *) outBuffer) >> 7 & 1u));
+            printf("%u\n",(*(char *) outBuffer) >> 7 & 1u);
             printf("Lat:%f, Lng:%f\n", latReturned, lngReturned);
             auto targetLat = std::find(lats.begin(), lats.end(), latReturned);
 

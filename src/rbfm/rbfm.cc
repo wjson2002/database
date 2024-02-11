@@ -829,8 +829,13 @@ namespace PeterDB {
                             }
 
                         } else if (attrType == TypeVarChar) {
-                            //printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
-                            if (rbfm.compareString((char *) pointer, (char *) value, compOp)) {
+                            char* valuePointer = (char*)value;
+                            char* pointerPointer = pointer;
+                            int* lenOfValue = (int*)value;
+                            valuePointer+=4;
+                            pointerPointer+=4;
+
+                            if (rbfm.compareString((char *) pointerPointer, (char *) valuePointer, compOp)) {
                                 // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
                                 printf("True\n");
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
@@ -902,6 +907,9 @@ namespace PeterDB {
             return (compOp == NO_OP);
         }
 
+
+        // Print as String
+        printf("String: %s", value2);
         printf("comparing {%s}, {%s}: ", value1, value2);
 
         // Use strcmp for string comparisons
@@ -911,7 +919,7 @@ namespace PeterDB {
             case EQ_OP: return (result == 0);
             case LT_OP: return (result < 0);
             case LE_OP: return (result <= 0);
-            case GT_OP: return (result > 0);
+            case GT_OP: return (result >= 0);
             case GE_OP: return (result >= 0);
             case NE_OP: return (result != 0);
             case NO_OP: return true;
