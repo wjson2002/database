@@ -211,7 +211,7 @@ namespace PeterDB {
 
     RC RelationManager::readTuple(const std::string &tableName, const RID &rid, void *data) {
 
-        if(TableExists(tableName)){
+//        if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
             FileHandle fh;
@@ -227,10 +227,10 @@ namespace PeterDB {
             else{
                 return -1;
             }
-        }
-        else{
-            return -1;
-        }
+//        }
+//        else{
+//            return -1;
+//        }
 
     }
 
