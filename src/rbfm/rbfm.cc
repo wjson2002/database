@@ -403,7 +403,7 @@ namespace PeterDB {
         int length = 0;
         memcpy(&offset, buffer + 2 + 2 * sizeof(int) + (slotNumber) * 8,sizeof(int));
         memcpy(&length,buffer + 2  + sizeof(int) + (slotNumber) * 8, sizeof(int));
-        printf("Deleting {%d},{%d}, {%d},{%d}\n",rid.pageNum, rid.slotNum, offset, length);
+        //printf("Deleting {%d},{%d}, {%d},{%d}\n",rid.pageNum, rid.slotNum, offset, length);
         RID tombstoneRID;
         if(length == -1){
             length = MIN_RECORD_SIZE;
@@ -463,7 +463,7 @@ namespace PeterDB {
 
     RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                             const void *data, const RID &rid) {
-        printf("\nUpdating {%d},{%d}: ",rid.pageNum, rid.slotNum);
+        //printf("\nUpdating {%d},{%d}: ",rid.pageNum, rid.slotNum);
         char *buffer = (char*) malloc(PAGE_SIZE);
         unsigned pageNumber = rid.pageNum;
         unsigned slotNumber = rid.slotNum;
@@ -487,7 +487,7 @@ namespace PeterDB {
         //printf("Updating {%d},{%d}, from {size:%d}, to {%d}\n",rid.pageNum, rid.slotNum, length, updatedRecordSize);
         //Scenario 1: Updated Record Size = Old Record Size
         if(length == updatedRecordSize){
-            printf("Updating scenario 1");
+           // printf("Updating scenario 1");
             memcpy(buffer+offset, data, updatedRecordSize);
             fileHandle.writePage(rid.pageNum, buffer);
             free(buffer);
@@ -495,7 +495,7 @@ namespace PeterDB {
         }
             //Scenario 2: Updated Record Size < Old Record Size
         else if(updatedRecordSize < length){
-            printf("Updating scenario 2");
+           // printf("Updating scenario 2");
             memcpy(buffer+offset, data, updatedRecordSize);
             //shift slot directory
             memmove(buffer + offset + updatedRecordSize,
@@ -530,7 +530,7 @@ namespace PeterDB {
             int growSize = updatedRecordSize - length;
             //Scenario 3.1: no free space left on page
             if(growSize > currentFreeSpace){
-                printf("Scenario 3.1: Add new Page->");
+                //printf("Scenario 3.1: Add new Page->");
 
                 free(buffer);
                 RID newRID;
@@ -540,7 +540,7 @@ namespace PeterDB {
                 fileHandle.readPage(rid.pageNum, buffer);
 
                 //Convert record to tombstone
-                printf("Converted record to {%d},{%d}", newRID.pageNum, newRID.slotNum);
+               // printf("Converted record to {%d},{%d}", newRID.pageNum, newRID.slotNum);
                 memcpy(buffer + offset, &newRID.pageNum, sizeof(int));
                 memcpy(buffer + offset + 4, &newRID.slotNum, sizeof(short));
                 if(slotNumber < numberOfRecords){
@@ -560,7 +560,7 @@ namespace PeterDB {
                         if(tempLen != 0 && tempLen <= PAGE_SIZE){
                             unsigned newOffset = offset - lengthDifference;
                             memmove(buffer + 2 + 2 * sizeof(int) + (i) * 8,&newOffset,sizeof(int));
-                            printf("shifting slot{%d} from{%d}to{%d} ", i, offset, newOffset);
+                            //printf("shifting slot{%d} from{%d}to{%d} ", i, offset, newOffset);
                         }
                         if(tempLen == 0){
                             numberOfRecords++;
@@ -579,7 +579,7 @@ namespace PeterDB {
                 //Scenario 3.2: shift all slots to add space to updated slot
             else{
                 int src = offset;
-                printf("Updating scenario 3.2:Make more Space-> offset{%d}, size{%d}",src, updatedRecordSize);
+                //printf("Updating scenario 3.2:Make more Space-> offset{%d}, size{%d}",src, updatedRecordSize);
                 //Shift Slot Directory to make space
                 memmove(buffer + offset + updatedRecordSize,
                         buffer + offset + length,
@@ -624,7 +624,7 @@ namespace PeterDB {
     RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
                                              const RID &rid, const std::string &attributeName, void *data) {
         if(rid.pageNum < 0){
-            printf("READATTR FAIL PAGE OUT OF RANGE\n");
+            //printf("READATTR FAIL PAGE OUT OF RANGE\n");
             return -1;
         }
 
@@ -837,14 +837,14 @@ namespace PeterDB {
 
                             if (rbfm.compareString((char *) pointerPointer, (char *) valuePointer, compOp)) {
                                 // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
-                                printf("True\n");
+                                //printf("True\n");
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                                 rid = currentRID;
                                 currentRID.slotNum += 1;
                                 rbfm.closeFile(fileHandle);
                                 return 0;
                             }
-                            printf("FALSE\n");
+                            //printf("FALSE\n");
                         }
                     }
                     currentRID.slotNum += 1;
@@ -909,9 +909,9 @@ namespace PeterDB {
 
 
         // Print as String
-        printf("String: %s", value2);
-        printf("comparing {%s}, {%s}: ", value1, value2);
-
+       //printf("String: %s", value2);
+       // printf("comparing {%s}, {%s}: ", value1, value2);
+//
         // Use strcmp for string comparisons
         int result = strcmp(value1, value2);
 
