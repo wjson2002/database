@@ -26,6 +26,7 @@ namespace PeterDB {
 
         FILE* file;
         file = fopen(fileName.c_str(), "wr+");
+
         pfmInitFile(file);
         if(file == nullptr)
         {
@@ -52,21 +53,23 @@ namespace PeterDB {
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
 
         FILE* file = fopen(fileName.c_str(), "r+");
-        fileHandle.myFile = file;
-        fileHandle.initFile(file);
-        unsigned test = -1;
-        fseek(file,0,SEEK_SET);
-        fread(&test ,sizeof(unsigned), 1, file);
-       // printf("OPEN File with: pages: {%d}}\n", test);
         if(file == nullptr)
         {
             perror("File failed to open");
             return -1;
         }
         else {
-            //printf("File Fopened success: %s \n", fileName.c_str());
+            fileHandle.FileName = fileName;
+            fileHandle.myFile = file;
+            fileHandle.initFile(file);
+            unsigned test = -1;
+            fseek(file,0,SEEK_SET);
+            fread(&test ,sizeof(unsigned), 1, file);
+            // printf("OPEN File with: pages: {%d}}\n", test);
             return 0;
         }
+
+
     }
 
     RC PagedFileManager::closeFile(FileHandle &fileHandle) {
@@ -193,7 +196,7 @@ namespace PeterDB {
        // printf("Write Count: {%d} ", writePageCounter);
 
         fread(&appendPageCounter, sizeof(unsigned), 1, myFile);
-       // printf("....Loading File Finished...\n");
+        //printf("....Loading File Finished...\n");
     }
     void FileHandle::flushFile() {
         fseek(myFile,0,SEEK_SET);
@@ -210,7 +213,7 @@ namespace PeterDB {
 
         fflush(myFile);
 
-       // printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
+        //printf("flushed values: page{%d}, read{%d}, write{%d}, append{%d}\n", numOfPages,readPageCounter, writePageCounter,appendPageCounter);
     }
 
     void FileHandle::initPage() {

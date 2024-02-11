@@ -63,14 +63,20 @@ namespace PeterDB {
         // a satisfying record needs to be fetched from the file.
         // "data" follows the same format as RecordBasedFileManager::insertRecord().
         RC getNextRecord(RID &rid, void *data);
-        RC scanInit(FileHandle fh, std::vector<Attribute> recordDescriptor);
+
         RC close() { return 0;};
-        std::vector<RID>::iterator currentRID = recordRIDS.begin();
-        std::vector<RID> recordRIDS;
-        std::vector<RID> scannedRIDS;
-        std::string tableName;
-        FileHandle fileHandle = fileHandle;
-        std::vector<Attribute> recordDescriptor = recordDescriptor;
+
+        RID currentRID;
+        CompOp compOp;
+        const void *value;
+        std::string fileName;
+        FileHandle fileHandle;
+        std::vector<Attribute> recordDescriptor;
+        std::string conditionAttribute;
+        std::vector<std::string> attributeNames;
+        AttrType attrType;
+        int attrLength;
+        int numOfPages;
 
     };
 
@@ -93,7 +99,6 @@ namespace PeterDB {
                                                 int length,char (&buffer)[PAGE_SIZE],
                                                 int &offsetPointer);
 
-        void readSlotDirectory(void* page);
         int getRecordSize( const std::vector<Attribute> &recordDescriptor, const void *data);
         std::vector<int> serialize(char* bytes, int size);
 
@@ -153,9 +158,9 @@ namespace PeterDB {
                 const std::vector<std::string> &attributeNames, // a list of projected attributes
                 RBFM_ScanIterator &rbfm_ScanIterator);
 
-        std::vector<RID> scannedRIDS;
+
         template <typename T>
-        bool compareNums(T value1, T value2, const CompOp compOp);
+        bool compareNums(T* value1, T* value2, const CompOp compOp, AttrType type);
         bool compareString(char* value1, char* value2, CompOp compOp);
 
     protected:

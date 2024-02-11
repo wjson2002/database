@@ -10,13 +10,13 @@ namespace PeterDB {
     std::string DEFAULT_TABLES_NAME = "Tables";
     std::vector<Attribute> tableRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
                                                     {"table-name", TypeVarChar, 50},
-                                                    {"file-name",TypeVarChar, 80}};
+                                                    {"file-name",TypeVarChar, 50}};
     std::string DEFAULT_ATTRIBUTE_NAME = "Columns";
     std::vector<Attribute> attributeRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
                                                     {"column-name", TypeVarChar, 50},
                                                     {"column-type",TypeInt, sizeof(int)},
                                                     {"column-length",TypeInt, sizeof(int)},
-                                                        {"column-position",TypeInt, sizeof(int)}};
+                                                    {"column-position",TypeInt, sizeof(int)}};
 
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
@@ -36,7 +36,7 @@ namespace PeterDB {
 
     RC RelationManager::createCatalog() {
         //Create File for tables & attributes
-        //printf("Creating Catalog\n");
+        printf("Creating Catalog\n");
         if(this->CatalogActive){
             //printf("Catalog already created\n");
             return -1;
@@ -48,6 +48,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
+
         printf("Deleting Catalog\n");
 
         if(CatalogActive == false){
@@ -97,29 +98,34 @@ namespace PeterDB {
         RID rid;
         // Insert records into Table
         std::string tableIndex = std::to_string(index);
-        std::string data[] = {tableIndex, tableName, tableName+".bin"};
+        std::string data[] = {tableIndex, tableName, tableName};
         auto result = convert(tableRecordDescriptor, data);
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
 
         // Insert Record into Attributes
-        int position = 0;
+        rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
+        int position = 1;
         for(auto attr: attrs){
-            std::string attrData[] = {tableIndex, attr.name,
-                                  std::to_string(attr.type),
-                                  std::to_string(position),
-                                      std::to_string(attr.length)};
+            std::string attrData[] = {  tableIndex,
+                                        attr.name,
+                                        std::to_string(attr.type),
+                                        std::to_string(attr.length),
+                                        std::to_string(position)};
+
             auto bytes = convert(attributeRecordDescriptor, attrData);
             rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
             position += 1;
         }
-
+        rbfm.closeFile(attributeFileHandle);
         return 0;
     }
 
     RC RelationManager::deleteTable(const std::string &tableName) {
-        auto it = tableNameToIdMap.find(tableName);
-
-        if(it != tableNameToIdMap.end()){
+        printf("Delete Table:{%s}\n", tableName.c_str());
+        if(tableName == DEFAULT_TABLES_NAME || tableName == DEFAULT_ATTRIBUTE_NAME){
+            return -1;
+        }
+        if(TableExists(tableName)){
             RecordBasedFileManager::instance().destroyFile(tableName);
             int tableInt = tableNameToIdMap[tableName];
             tableNameToIdMap.erase(tableName);
@@ -134,7 +140,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        printf("Getting attributes\n");
+        printf("Getting table {%s}\n", tableName.c_str());
 
         if(tableName == DEFAULT_TABLES_NAME){
             attrs = tableRecordDescriptor;
@@ -146,17 +152,12 @@ namespace PeterDB {
             return 0;
         }
 
-        if(TableExists(tableName)){
-            int tableID = tableNameToIdMap[tableName];
-            //Need to get table ID
-            std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
-            attrs = recordDescriptor;
-            return 0;
-        }
-        else
-        {
-            return -1;
-        }
+
+        int tableID = tableNameToIdMap[tableName];
+        //Need to get table ID
+        std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
+        attrs = recordDescriptor;
+        return 0;
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
@@ -166,13 +167,16 @@ namespace PeterDB {
         if(it == tableNameToIdMap.end()){
             return -1;
         }
-
+        if(tableName == DEFAULT_TABLES_NAME || tableName == DEFAULT_ATTRIBUTE_NAME){
+            return -1;
+        }
         std::vector<std::string> attributeNames;
 
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
-        rbfm.openFile(tableName, fh);
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+
+        rbfm.openFile(tableName, fh);
         rbfm.insertRecord(fh, recordD, data, rid);
         rbfm.closeFile(fh);
         return 0;
@@ -198,6 +202,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::updateTuple(const std::string &tableName, const void *data, const RID &rid) {
+
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
@@ -209,6 +214,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::readTuple(const std::string &tableName, const RID &rid, void *data) {
+
         if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
@@ -233,13 +239,72 @@ namespace PeterDB {
     }
 
     RC RelationManager::printTuple(const std::vector<Attribute> &attrs, const void *data, std::ostream &out) {
+
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
-        rbfm.printRecord(attrs, data, out);
+        rbfm.printRecord(attrs,data,out);
+//        int numOfNullBytes = ceil((double)attrs.size()/8);
+//        char* dataPointer = (char*)data;
+//
+//        char nullIndicators[numOfNullBytes];
+//        char* ptr = (char*)data;
+//
+//        for (int i = 0; i < numOfNullBytes; i++) {
+//            nullIndicators[i] = *dataPointer;
+//            dataPointer++;
+//        }
+//
+//        std::vector<int> bitArray = rbfm.serialize(nullIndicators, numOfNullBytes);
+//        int index = 0;
+//        for (const Attribute& attribute : attrs){
+//            out << attribute.name.c_str();
+//
+//            if(bitArray[index] == 1){
+//                out << ": NULL";
+//                if(index == attrs.size() - 1){
+//                    out<< "\n";
+//                }
+//                else{
+//                    out<< ", ";
+//                }
+//                index ++;
+//                continue;
+//            }
+//            switch (attribute.type) {
+//                case TypeInt:
+//                    out << ": " << *(int*)dataPointer;
+//                    dataPointer +=4;
+//                    break;
+//                case TypeReal:
+//
+//                    out<< ": " << *(float*)dataPointer;
+//                    dataPointer +=4;
+//                    break;
+//                case TypeVarChar:
+//                    out << ": ";
+//                    int* length= (int*)dataPointer;
+//
+//                    dataPointer += 4;
+//                    for(int i = 0; i < *length; i++){
+//                        out<<*dataPointer;
+//                        dataPointer++;
+//                    }
+//                    break;
+//            }
+//            if(index == attrs.size() - 1){
+//                out<< "\n";
+//            }
+//            else{
+//                out<< ", ";
+//            }
+//            index ++;
+//        }
+
         return 0;
     }
 
     RC RelationManager::readAttribute(const std::string &tableName, const RID &rid, const std::string &attributeName,
                                       void *data) {
+
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
         FileHandle fh = tableIDmap[tableID];
@@ -257,22 +322,36 @@ namespace PeterDB {
                              const void *value,
                              const std::vector<std::string> &attributeNames,
                              RM_ScanIterator &rm_ScanIterator) {
+        RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+        if(tableName == DEFAULT_TABLES_NAME){
+            rbfm.closeFile(tableFileHandle);
+            rbfm.openFile(DEFAULT_TABLES_NAME, tableFileHandle);
+        }
 
         if(TableExists(tableName)){
-            RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
+
             int tableID = tableNameToIdMap[tableName];
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             RBFM_ScanIterator Iterator = RBFM_ScanIterator();
-            Iterator.tableName = tableName;
+            for(auto attr : recordD){
+                rm_ScanIterator.maxSizeOfTuple += attr.length;
+            }
+            if(tableName == DEFAULT_TABLES_NAME){
+                printf("Scanning Tables: \n");
+            }
+            if(tableName == DEFAULT_ATTRIBUTE_NAME){
+                printf("Scanning Columns: \n");
+            }
             rbfm.openFile(tableName, fh);
             rbfm.scan(fh, recordD, conditionAttribute, compOp, value, attributeNames, Iterator);
-
+            rm_ScanIterator.recordDescriptor = recordD;
             rm_ScanIterator.rbfmIterator = Iterator;
-            rm_ScanIterator.scannedRIDS = Iterator.scannedRIDS;
+            rbfm.closeFile(fh);
             return 0;
         }
         else{
+            printf("Scan table doesn't exist");
             return -1;
         }
 
@@ -306,7 +385,7 @@ namespace PeterDB {
                     totalSize += sizeof(int);
                     break;
                 case TypeReal:
-                    totalSize += sizeof(float);
+                    totalSize += sizeof(int);
                     break;
                 case TypeVarChar:
                     totalSize += sizeof(int) + data[index].length();
@@ -317,7 +396,7 @@ namespace PeterDB {
 
         char* result = new char[totalSize + numOfNullBytes];
         char* resultPointer = result;
-
+        memset(result, 0 , totalSize + numOfNullBytes);
         for (int i = 0; i < numOfNullBytes; i++) {
             int temp = 0;
             memcpy(resultPointer, &temp, 1);
@@ -344,7 +423,6 @@ namespace PeterDB {
                     int length = (int)(data[index].length());
                     memcpy(resultPointer, &length, sizeof(int));
                     resultPointer += sizeof(int);
-
                     memcpy(resultPointer, data[index].c_str(), length);
                     resultPointer += length;
                 }
@@ -391,6 +469,7 @@ namespace PeterDB {
                 break;
             case 2:
                 attrtype = TypeVarChar;
+
                 result.length = 50;
                 break;
         }
@@ -412,21 +491,26 @@ namespace PeterDB {
                   Iterator);
 
         std::vector<Attribute> result;
-
-        for(auto RID : Iterator.scannedRIDS){
-            void* temp[150];
-            //printf("RD ROD:{%d}{%d}:", RID.pageNum,RID.slotNum);
-            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, RID, temp);
-            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, temp);
-            //printf("ATTRIBUTE {%s} {%d} \n",tempAttr.name.c_str(),tempAttr.type);
+        RID tempRID;
+        void* buffer[150];
+        int count  = 0;
+        int i = 0;
+        while((i = Iterator.getNextRecord(tempRID, buffer)) != RBFM_EOF){
+            rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
+            rbfm.readRecord(attributeFileHandle, attributeRecordDescriptor, tempRID, buffer);
+            Attribute tempAttr = convertBytesToAttributes(attributeRecordDescriptor, buffer);
             result.push_back(tempAttr);
+            count++;
+            rbfm.closeFile(attributeFileHandle);
         }
 
+        //printf("Get next record ran {%d} times\n", count);
         return result;
     }
 
     bool RelationManager::TableExists(std::string tableName){
         auto it = tableNameToIdMap.find(tableName);
+
 
         if(it == tableNameToIdMap.end()){
             return false;
@@ -441,14 +525,93 @@ namespace PeterDB {
     RM_ScanIterator::~RM_ScanIterator() = default;
 
     RC RM_ScanIterator::getNextTuple(RID &rid, void *data) {
+
         int result = rbfmIterator.getNextRecord(rid, data);
-        return result;
+        int size = 0;
+        for (auto a: recordDescriptor) {
+            size += a.length;
+        }
+
+        if (result == 0) {
+            std::vector<std::string> attributeNames = rbfmIterator.attributeNames;
+            if (attributeNames.size() == 0 || attributeNames.size() == recordDescriptor.size()) {
+                return 0;
+            } else {
+                RelationManager &rm = RelationManager::instance();
+                char *resultPointer = (char *)data + 1;
+                void *readData[size];
+                char strArray[8] = {'0','0','0','0','0','0','0','0'};
+                int index = 7;
+                for (const auto &attr: attributeNames) {
+                    for (const auto &a: recordDescriptor) {
+                        if (a.name == attr) {
+                            AttrType type = a.type;
+                            rm.readAttribute(rbfmIterator.fileName, rid, attr, readData);
+                            char *tempPointer = (char *)readData;
+                            char *nullbit = (char*)&readData;
+
+                            int intValue = static_cast<int>(*nullbit);
+
+                            if(intValue == 1){
+                                memset(data, 1, 1);
+                                if ((*(char *) data) >> 7 & 1u) {
+                                    printf("Setting success");
+                                    printf("%u\n",(*(char *) data) >> 7 & 1u);
+                                }
+
+                            }
+                            else{
+                                tempPointer += 1;
+                                switch (type) {
+                                    case 0:
+                                        memcpy(resultPointer, tempPointer, 4);
+                                        resultPointer += 4;
+                                        break;
+                                    case 1:
+                                        memcpy(resultPointer, tempPointer, 4);
+                                        resultPointer += 4;
+                                        break;
+                                    case 2:
+                                        int *len = (int *) tempPointer;
+                                        tempPointer += 4;
+
+                                        memcpy(resultPointer, &*len, 4);
+                                        resultPointer += 4;
+                                        memcpy(resultPointer, tempPointer, *len);
+                                        break;
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+                    index --;
+                }
+
+                return 0;
+            }
+        }
+        return RM_EOF;
     }
+//                for(const auto& attr: attributeNames){
+//                    for(const auto& a : recordDescriptor){
+//                        void* temp[a.length];
+//                        if(a.name == attr){
+//                            rm.readAttribute(rbfmIterator.fileName, rid, attr, temp);
+//                            memcpy(pointer, temp, a.length +1);
+//                            pointer += 5;
+//                        }
+//                    }
+//                }
+
+
+
+
 
     RC RM_ScanIterator::close() {
         rbfmIterator.close();
-        return 0; }
-
+        return 0;
+    }
 
 
     // Extra credit work
