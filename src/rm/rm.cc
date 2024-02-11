@@ -216,11 +216,11 @@ namespace PeterDB {
             int tableID = tableNameToIdMap[tableName];
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+            printf("readFile %s\n", tableName.c_str());
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
             rbfm.closeFile(fh);
-            //printf("Read Tuple: ");
-            //rbfm.printRecord(recordD, data, std::cout);
+
             if(result == 0){
                 return 0;
             }
