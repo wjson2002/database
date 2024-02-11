@@ -790,7 +790,7 @@ namespace PeterDB {
                 char numOfRecords;
                 memmove(&(numOfRecords), buffer + 2, sizeof(char));
 
-                while(currentRID.slotNum < (int)numOfRecords){
+                while(currentRID.slotNum <= (int)numOfRecords){
                     void* d[attrLength + 1];
                     memset(d, -1, attrLength + 1);
                     int read = rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute,d);
@@ -832,12 +832,14 @@ namespace PeterDB {
                             //printf("Read String:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
                             if (rbfm.compareString((char *) pointer, (char *) value, compOp)) {
                                 // printf("Macth found:{%s}, {%s}}\n", (char *)pointer, (char*)value);
+                                printf("True\n");
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                                 rid = currentRID;
                                 currentRID.slotNum += 1;
                                 rbfm.closeFile(fileHandle);
                                 return 0;
                             }
+                            printf("FALSE\n");
                         }
                     }
                     currentRID.slotNum += 1;
@@ -895,21 +897,27 @@ namespace PeterDB {
     }
 
     bool RecordBasedFileManager::compareString(char* value1, char* value2, CompOp compOp){
-        if(value1 == nullptr || value2 == nullptr){
-            if(compOp == NO_OP){
-                return true;
-            }
-            return false;
+        // Simplify null checks
+        if (value1 == nullptr || value2 == nullptr) {
+            return (compOp == NO_OP);
         }
 
-        if (compOp == EQ_OP){return (strcmp(value1, value2) == 0);}
-        else if (compOp == LT_OP){return (strcmp(value1, value2) < 0);}
-        else if (compOp == LE_OP){return (strcmp(value1, value2) <= 0);}
-        else if (compOp == GT_OP){return (strcmp(value1, value2) > 0);}
-        else if (compOp == GE_OP){return (strcmp(value1, value2) >= 0);}
-        else if (compOp == NE_OP){return (strcmp(value1, value2) != 0);}
-        else if (compOp == NO_OP){return true;}
-        else {return false;}
+        printf("comparing {%s}, {%s}: ", value1, value2);
+
+        // Use strcmp for string comparisons
+        int result = strcmp(value1, value2);
+
+        switch (compOp) {
+            case EQ_OP: return (result == 0);
+            case LT_OP: return (result <= 0);
+            case LE_OP: return (result <= 0);
+            case GT_OP: return (result >= 0);
+            case GE_OP: return (result >= 0);
+            case NE_OP: return (result != 0);
+            case NO_OP: return true;
+            default: return false;
+        }
+
     }
 } // namespace PeterDB
 
