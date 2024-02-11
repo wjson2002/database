@@ -898,7 +898,7 @@ namespace PeterDB {
                 else {return false;}
             }
         }
-
+        return false;
     }
 
     bool RecordBasedFileManager::compareString(char* value1, char* value2, CompOp compOp){
@@ -909,10 +909,9 @@ namespace PeterDB {
 
 
         // Print as String
-       //printf("String: %s", value2);
-       // printf("comparing {%s}, {%s}: ", value1, value2);
-//
-        // Use strcmp for string comparisons
+
+        printf("comparing {%s}, {%s}: ", value1, value2);
+
         int result = strcmp(value1, value2);
 
         switch (compOp) {
