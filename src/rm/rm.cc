@@ -242,63 +242,6 @@ namespace PeterDB {
 
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         rbfm.printRecord(attrs,data,out);
-//        int numOfNullBytes = ceil((double)attrs.size()/8);
-//        char* dataPointer = (char*)data;
-//
-//        char nullIndicators[numOfNullBytes];
-//        char* ptr = (char*)data;
-//
-//        for (int i = 0; i < numOfNullBytes; i++) {
-//            nullIndicators[i] = *dataPointer;
-//            dataPointer++;
-//        }
-//
-//        std::vector<int> bitArray = rbfm.serialize(nullIndicators, numOfNullBytes);
-//        int index = 0;
-//        for (const Attribute& attribute : attrs){
-//            out << attribute.name.c_str();
-//
-//            if(bitArray[index] == 1){
-//                out << ": NULL";
-//                if(index == attrs.size() - 1){
-//                    out<< "\n";
-//                }
-//                else{
-//                    out<< ", ";
-//                }
-//                index ++;
-//                continue;
-//            }
-//            switch (attribute.type) {
-//                case TypeInt:
-//                    out << ": " << *(int*)dataPointer;
-//                    dataPointer +=4;
-//                    break;
-//                case TypeReal:
-//
-//                    out<< ": " << *(float*)dataPointer;
-//                    dataPointer +=4;
-//                    break;
-//                case TypeVarChar:
-//                    out << ": ";
-//                    int* length= (int*)dataPointer;
-//
-//                    dataPointer += 4;
-//                    for(int i = 0; i < *length; i++){
-//                        out<<*dataPointer;
-//                        dataPointer++;
-//                    }
-//                    break;
-//            }
-//            if(index == attrs.size() - 1){
-//                out<< "\n";
-//            }
-//            else{
-//                out<< ", ";
-//            }
-//            index ++;
-//        }
-
         return 0;
     }
 
@@ -540,7 +483,6 @@ namespace PeterDB {
                 RelationManager &rm = RelationManager::instance();
                 char *resultPointer = (char *)data + 1;
                 void *readData[size];
-                char strArray[8] = {'0','0','0','0','0','0','0','0'};
                 int index = 7;
                 for (const auto &attr: attributeNames) {
                     for (const auto &a: recordDescriptor) {
@@ -549,16 +491,9 @@ namespace PeterDB {
                             rm.readAttribute(rbfmIterator.fileName, rid, attr, readData);
                             char *tempPointer = (char *)readData;
                             char *nullbit = (char*)&readData;
-
-                            int intValue = static_cast<int>(*nullbit);
-
+                            int intValue = *(int*)(nullbit);
                             if(intValue == 1){
                                 memset(data, 1, 1);
-                                if ((*(char *) data) >> 7 & 1u) {
-                                    printf("Setting success");
-                                    printf("%u\n",(*(char *) data) >> 7 & 1u);
-                                }
-
                             }
                             else{
                                 tempPointer += 1;
@@ -574,7 +509,6 @@ namespace PeterDB {
                                     case 2:
                                         int *len = (int *) tempPointer;
                                         tempPointer += 4;
-
                                         memcpy(resultPointer, &*len, 4);
                                         resultPointer += 4;
                                         memcpy(resultPointer, tempPointer, *len);
@@ -593,16 +527,6 @@ namespace PeterDB {
         }
         return RM_EOF;
     }
-//                for(const auto& attr: attributeNames){
-//                    for(const auto& a : recordDescriptor){
-//                        void* temp[a.length];
-//                        if(a.name == attr){
-//                            rm.readAttribute(rbfmIterator.fileName, rid, attr, temp);
-//                            memcpy(pointer, temp, a.length +1);
-//                            pointer += 5;
-//                        }
-//                    }
-//                }
 
 
 
