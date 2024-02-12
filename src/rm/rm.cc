@@ -13,10 +13,10 @@ namespace PeterDB {
                                                     {"file-name",TypeVarChar, 50}};
     std::string DEFAULT_ATTRIBUTE_NAME = "Columns";
     std::vector<Attribute> attributeRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
-                                                    {"column-name", TypeVarChar, 50},
-                                                    {"column-type",TypeInt, sizeof(int)},
-                                                    {"column-length",TypeInt, sizeof(int)},
-                                                    {"column-position",TypeInt, sizeof(int)}};
+                                                        {"column-name", TypeVarChar, 50},
+                                                        {"column-type",TypeInt, sizeof(int)},
+                                                        {"column-length",TypeInt, sizeof(int)},
+                                                        {"column-position",TypeInt, sizeof(int)}};
 
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
@@ -99,7 +99,7 @@ namespace PeterDB {
         std::string data[] = {tableIndex, tableName, tableName};
         auto result = convert(tableRecordDescriptor, data);
         rbfm.insertRecord(tableFileHandle, tableRecordDescriptor, result, rid);
-        free(result);
+
         // Insert Record into Attributes
         rbfm.openFile(DEFAULT_ATTRIBUTE_NAME, attributeFileHandle);
         int position = 1;
@@ -113,7 +113,6 @@ namespace PeterDB {
             auto bytes = convert(attributeRecordDescriptor, attrData);
             rbfm.insertRecord(attributeFileHandle, attributeRecordDescriptor, bytes, rid);
             position += 1;
-            free(bytes);
         }
         rbfm.closeFile(attributeFileHandle);
         return 0;
@@ -215,7 +214,7 @@ namespace PeterDB {
         if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
-            FileHandle fh = tableIDmap[tableID];
+            FileHandle fh;
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             printf("readFile %s\n", tableName.c_str());
             rbfm.openFile(tableName, fh);
@@ -555,12 +554,12 @@ namespace PeterDB {
 
     // indexScan returns an iterator to allow the caller to go through qualified entries in index
     RC RelationManager::indexScan(const std::string &tableName,
-                 const std::string &attributeName,
-                 const void *lowKey,
-                 const void *highKey,
-                 bool lowKeyInclusive,
-                 bool highKeyInclusive,
-                 RM_IndexScanIterator &rm_IndexScanIterator){
+                                  const std::string &attributeName,
+                                  const void *lowKey,
+                                  const void *highKey,
+                                  bool lowKeyInclusive,
+                                  bool highKeyInclusive,
+                                  RM_IndexScanIterator &rm_IndexScanIterator){
         return -1;
     }
 
