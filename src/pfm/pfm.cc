@@ -42,6 +42,7 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::destroyFile(const std::string &fileName) {
+
         int result = remove(fileName.c_str());
         if (result != 0)
         {

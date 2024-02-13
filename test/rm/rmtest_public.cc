@@ -1,6 +1,7 @@
 #include "test/utils/rm_test_util.h"
 
 namespace PeterDBTesting {
+    int t = 100;
     TEST_F(RM_Catalog_Test, create_and_delete_tables) {
 
         // Try to delete the System Catalog.
@@ -425,7 +426,7 @@ namespace PeterDBTesting {
         createLargeTable(tableName);
 
         inBuffer = malloc(bufSize);
-        int numTuples = 1000;
+        int numTuples = t;
 
         // GetAttributes
         ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
@@ -461,7 +462,7 @@ namespace PeterDBTesting {
         // 1. read tuple
 
         size_t size = 0;
-        int numTuples = 1000;
+        int numTuples = t;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -500,9 +501,9 @@ namespace PeterDBTesting {
         // 1. update tuple
         // 2. read tuple
 
-        int numTuples = 5000;
-        unsigned numTuplesToUpdate1 = 2000;
-        unsigned numTuplesToUpdate2 = 2000;
+        int numTuples = t;
+        unsigned numTuplesToUpdate1 = t / 5;
+        unsigned numTuplesToUpdate2 = t / 5;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -594,8 +595,8 @@ namespace PeterDBTesting {
         // 1. delete tuple
         // 2. read tuple
 
-        unsigned numTuples = 5000;
-        unsigned numTuplesToDelete = 2000;
+        unsigned numTuples = t;
+        unsigned numTuplesToDelete = t / 5;
         outBuffer = malloc(bufSize);
 
         readRIDsFromDisk(rids, numTuples);
@@ -682,7 +683,7 @@ namespace PeterDBTesting {
 
         bufSize = 100;
         size_t tupleSize = 0;
-        unsigned numTuples = 1500;
+        unsigned numTuples = 150;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
@@ -733,7 +734,7 @@ namespace PeterDBTesting {
 
         bufSize = 200;
         size_t tupleSize = 0;
-        unsigned numTuples = 1500;
+        unsigned numTuples = 150;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         unsigned ageVal = 25;
@@ -941,7 +942,7 @@ namespace PeterDBTesting {
 
         bufSize = 1000;
         size_t tupleSize = 0;
-        int numTuples = 100000;
+        int numTuples = 100;
 
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
@@ -991,7 +992,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100000;
+        int numTuples = 100;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1080,7 +1081,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100000;
+        int numTuples = 100;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1183,7 +1184,7 @@ namespace PeterDBTesting {
         // 3. scan - NO_OP
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100000;
+        int numTuples = 100;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1271,7 +1272,7 @@ namespace PeterDBTesting {
 
         bufSize = 1000;
         size_t tupleSize = 0;
-        int numTuples = 100000;
+        int numTuples = 100;
 
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);

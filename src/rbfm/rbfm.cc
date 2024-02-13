@@ -790,7 +790,7 @@ namespace PeterDB {
                 char numOfRecords;
                 memmove(&(numOfRecords), buffer + 2, sizeof(char));
 
-                while(currentRID.slotNum <= (int)numOfRecords){
+                while(currentRID.slotNum < (int)numOfRecords){
                     void* d[attrLength + 1];
                     memset(d, -1, attrLength + 1);
                     int read = rbfm.readAttribute(fileHandle, recordDescriptor, currentRID,conditionAttribute,d);
