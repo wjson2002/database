@@ -497,10 +497,14 @@ namespace PeterDB {
                             AttrType type = a.type;
                             rm.readAttribute(rbfmIterator.fileName, rid, attr, readData);
                             char *tempPointer = (char *)readData;
-                            char *nullbit = (char*)&readData;
-                            int intValue = *(int*)(nullbit);
-                            if(intValue == 1){
+                            char nullbit = *((char*)readData);
+
+                            int intValue = (int)(nullbit);
+                            printf("nullbit:{%c}{%d} \n", nullbit, intValue);
+                            if(intValue == -128){
+                                printf("set\n");
                                 memset(data, 1, 1);
+                                *(char*)data |= (1u << 7);
                             }
                             else{
                                 tempPointer += 1;

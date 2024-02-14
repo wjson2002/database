@@ -1075,109 +1075,111 @@ namespace PeterDBTesting {
 //
 //    }
 //
-//    TEST_F(RM_Catalog_Scan_Test_2, scan_with_null) {
-//        // Functions tested
-//        // 1. insert 100,000 tuples - will nulls
-//        // 2. scan - NO_OP
-//        // 3. scan - LE_OP
-//
-//        size_t tupleSize;
-//        bufSize = 1000;
-//        int numTuples = 100;
-//        inBuffer = malloc(bufSize);
-//        outBuffer = malloc(bufSize);
-//        std::vector<float> lats;
-//        std::vector<float> lngs;
-//        std::vector<unsigned> tweet_ids;
-//        float targetSentiment = 71234.5;
-//
-//        // GetAttributes
-//        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
-//
-//        // Initialize a NULL field indicator
-//        nullsIndicator = initializeNullFieldsIndicator(attrs);
-//
-//        for (int i = 0; i < numTuples; i++) {
-//            memset(inBuffer, 0, bufSize);
-//
-//            // Insert Tuple
-//
-//            // make some tuple to have null fields
-//            if (i % 37 == 0) {
-//                nullsIndicator[0] = 53; // 00110101
-//            } else {
-//                nullsIndicator[0] = 0; // 00000000
-//            }
-//
-//            Tweet tweet;
-//            generateTuple(nullsIndicator, inBuffer, i, i + 100, tupleSize, tweet);
-//            ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
-//                                        << "RelationManager::insertTuple() should succeed.";
-//            lats.emplace_back(tweet.lat);
-//            if (i % 37 != 0) {
-//                lngs.emplace_back(tweet.lng);
-//            }
-//            if (tweet.sentiment != -1 && tweet.sentiment <= targetSentiment) {
-//                tweet_ids.emplace_back(tweet.tweet_id);
-//            }
-//            rids.emplace_back(rid);
-//
-//            if (i % 10000 == 0) {
-//                GTEST_LOG_(INFO) << (i + 1) << "/" << numTuples << " records have been inserted so far.";
-//            }
-//        }
-//        GTEST_LOG_(INFO) << "All records have been inserted.";
-//        // Set up the iterator
-//        std::vector<std::string> attributes{"lng", "lat", "user_id"};
-//        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attributes, rmsi), success)
-//                                    << "relationManager::scan() should succeed.";
-//
-//        // Scan
-//        float latReturned, lngReturned;
-//        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
-//            if ((*(char *) outBuffer) >> 7 & 1u) {
-//                latReturned = *(float *) ((char *) outBuffer + 1);
-//                lngReturned = -1;
-//            } else {
-//                latReturned = *(float *) ((char *) outBuffer + 5);
-//                lngReturned = *(float *) ((char *) outBuffer + 1);
-//            }
-//
-//            auto targetLat = std::find(lats.begin(), lats.end(), latReturned);
-//
-//            ASSERT_NE(targetLat, lats.end()) << "returned lat value is not from inserted.";
-//            lats.erase(targetLat);
-//
-//            if (lngReturned != -1) {
-//                auto targetLng = std::find(lngs.begin(), lngs.end(), lngReturned);
-//
-//                ASSERT_NE(targetLng, lngs.end()) << "returned lnt value is not from inserted.";
-//                lngs.erase(targetLng);
-//            }
-//
-//        }
-//        ASSERT_TRUE(lats.empty()) << "returned lat does not match inserted";
-//        ASSERT_TRUE(lngs.empty()) << "returned lng does not match inserted";
-//
-//        ASSERT_EQ(rmsi.close(), success) << "close iterator should succeed.";
-//
-//        // Scan
-//        attributes = {"tweet_id"};
-//        ASSERT_EQ(rm.scan(tableName, "sentiment", PeterDB::LE_OP, &targetSentiment, attributes, rmsi), success)
-//                                    << "relationManager::scan() should succeed.";
-//
-//        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
-//
-//            unsigned tweetIdReturned = *(unsigned *) ((char *) outBuffer + 1);
-//            auto targetTweetId = std::find(tweet_ids.begin(), tweet_ids.end(), tweetIdReturned);
-//            ASSERT_NE(targetTweetId, tweet_ids.end()) << "returned tweet_id value is not from inserted.";
-//            tweet_ids.erase(targetTweetId);
-//
-//        }
-//
-//        ASSERT_TRUE(tweet_ids.empty()) << "returned tweet_id does not match inserted";
-//
-//    }
+    TEST_F(RM_Catalog_Scan_Test_2, scan_with_null) {
+        // Functions tested
+        // 1. insert 100,000 tuples - will nulls
+        // 2. scan - NO_OP
+        // 3. scan - LE_OP
+
+        size_t tupleSize;
+        bufSize = 1000;
+        int numTuples = 100;
+        inBuffer = malloc(bufSize);
+        outBuffer = malloc(bufSize);
+        std::vector<float> lats;
+        std::vector<float> lngs;
+        std::vector<unsigned> tweet_ids;
+        float targetSentiment = 71234.5;
+
+        // GetAttributes
+        ASSERT_EQ(rm.getAttributes(tableName, attrs), success) << "RelationManager::getAttributes() should succeed.";
+
+        // Initialize a NULL field indicator
+        nullsIndicator = initializeNullFieldsIndicator(attrs);
+
+        for (int i = 0; i < numTuples; i++) {
+            memset(inBuffer, 0, bufSize);
+
+            // Insert Tuple
+
+            // make some tuple to have null fields
+            if (i % 37 == 0) {
+                nullsIndicator[0] = 53; // 00110101
+            } else {
+                nullsIndicator[0] = 0; // 00000000
+            }
+
+            Tweet tweet;
+            generateTuple(nullsIndicator, inBuffer, i, i + 100, tupleSize, tweet);
+            ASSERT_EQ(rm.insertTuple(tableName, inBuffer, rid), success)
+                                        << "RelationManager::insertTuple() should succeed.";
+            lats.emplace_back(tweet.lat);
+            if (i % 37 != 0) {
+                lngs.emplace_back(tweet.lng);
+            }
+            if (tweet.sentiment != -1 && tweet.sentiment <= targetSentiment) {
+                tweet_ids.emplace_back(tweet.tweet_id);
+            }
+            rids.emplace_back(rid);
+
+            if (i % 10000 == 0) {
+                GTEST_LOG_(INFO) << (i + 1) << "/" << numTuples << " records have been inserted so far.";
+            }
+        }
+        GTEST_LOG_(INFO) << "All records have been inserted.";
+        // Set up the iterator
+        std::vector<std::string> attributes{"lng", "lat", "user_id"};
+        ASSERT_EQ(rm.scan(tableName, "", PeterDB::NO_OP, nullptr, attributes, rmsi), success)
+                                    << "relationManager::scan() should succeed.";
+
+        // Scan
+        float latReturned, lngReturned;
+        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+            printf("VALUE:%d\n",(*(char *) outBuffer) >> 7 & 1u);
+            if ((*(char *) outBuffer) >> 7 & 1u) {
+
+                latReturned = *(float *) ((char *) outBuffer + 1);
+                lngReturned = -1;
+            } else {
+                latReturned = *(float *) ((char *) outBuffer + 5);
+                lngReturned = *(float *) ((char *) outBuffer + 1);
+            }
+
+            auto targetLat = std::find(lats.begin(), lats.end(), latReturned);
+
+            ASSERT_NE(targetLat, lats.end()) << "returned lat value is not from inserted.";
+            lats.erase(targetLat);
+
+            if (lngReturned != -1) {
+                auto targetLng = std::find(lngs.begin(), lngs.end(), lngReturned);
+
+                ASSERT_NE(targetLng, lngs.end()) << "returned lnt value is not from inserted.";
+                lngs.erase(targetLng);
+            }
+
+        }
+        ASSERT_TRUE(lats.empty()) << "returned lat does not match inserted";
+        ASSERT_TRUE(lngs.empty()) << "returned lng does not match inserted";
+
+        ASSERT_EQ(rmsi.close(), success) << "close iterator should succeed.";
+
+        // Scan
+        attributes = {"tweet_id"};
+        ASSERT_EQ(rm.scan(tableName, "sentiment", PeterDB::LE_OP, &targetSentiment, attributes, rmsi), success)
+                                    << "relationManager::scan() should succeed.";
+
+        while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
+
+            unsigned tweetIdReturned = *(unsigned *) ((char *) outBuffer + 1);
+            auto targetTweetId = std::find(tweet_ids.begin(), tweet_ids.end(), tweetIdReturned);
+            ASSERT_NE(targetTweetId, tweet_ids.end()) << "returned tweet_id value is not from inserted.";
+            tweet_ids.erase(targetTweetId);
+
+        }
+
+        ASSERT_TRUE(tweet_ids.empty()) << "returned tweet_id does not match inserted";
+
+    }
 //
 //    TEST_F(RM_Catalog_Scan_Test_2, scan_after_update) {
 //        // Functions tested
