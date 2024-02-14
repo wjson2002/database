@@ -112,7 +112,7 @@ Scan will work normally on updated records.
 - Other implementation details goes here.
 
 RM scan uses RBFM scan iterator to work.
-
+In Project 2, I use a map data structure to map filenames/tablename to corresponding table id. 
 
 ### 8. Member contribution (for team of two)
 - Explain how you distribute the workload in team.
@@ -129,3 +129,5 @@ Solo work.
 Some of the test cases take too long to run.
 I would like to see more explanation of function in the project writeup. I would like information on what paramaters are passed in and 
 example use cases.
+
+Local test cases and gradescope tests are inconsistent. Sometimes I can pass local tests, but fail gradescope tests.

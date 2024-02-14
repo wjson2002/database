@@ -211,6 +211,7 @@ namespace PeterDB {
             printf("READ FAIL PAGE OUT OF RANGE\n");
             return -1;
         }
+
         char *readBuffer = (char*) malloc(PAGE_SIZE);
         fileHandle.readPage(rid.pageNum,readBuffer);
         char numOfRecords;
@@ -225,7 +226,7 @@ namespace PeterDB {
 
 
         if(length == 0 || length >= PAGE_SIZE || length < -1){
-            // printf("Record does not exist\n");
+            free(readBuffer);
             return -1;
         }
 
@@ -252,6 +253,7 @@ namespace PeterDB {
             return 0;
         }
         else{
+            free(readBuffer);
             return -1;
         }
 
@@ -670,6 +672,7 @@ namespace PeterDB {
 
         if(length == 0 || length >= PAGE_SIZE || length < -1){
             // printf("Record does not exist\n");
+            free(readBuffer);
             return -1;
         }
 
@@ -709,6 +712,7 @@ namespace PeterDB {
                     if(bitArray[index] == 1){
                         index ++;
                         memset(data, 128u, 1);
+                        free(readBuffer);
                         return 0;
                     }
                     else{
@@ -759,6 +763,7 @@ namespace PeterDB {
             return 0;
         }
         else{
+            free(readBuffer);
             return -1;
         }
 
