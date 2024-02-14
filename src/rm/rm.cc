@@ -52,7 +52,10 @@ namespace PeterDB {
         printf("Deleting Catalog\n");
         if(TableExists(DEFAULT_TABLES_NAME) && TableExists(DEFAULT_ATTRIBUTE_NAME)){
             for(const auto& i : tableNameToIdMap){
+                FileHandle fh = tableIDmap[i.second];
+
                 RecordBasedFileManager::instance().destroyFile(i.first);
+                //RecordBasedFileManager::instance().closeFile(fh);
             }
             this->CatalogActive = false;
             tableNameToIdMap.clear();
@@ -222,7 +225,7 @@ namespace PeterDB {
         if(TableExists(tableName)){
             RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
             int tableID = tableNameToIdMap[tableName];
-            FileHandle fh;
+            FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
             //printf("readFile %s\n", tableName.c_str());
             rbfm.openFile(tableName, fh);
@@ -459,6 +462,7 @@ namespace PeterDB {
         auto it = tableNameToIdMap.find(tableName);
 
         if(it == tableNameToIdMap.end()){
+            printf("Table {%s} not found", tableName.c_str());
             return false;
         }
         else{

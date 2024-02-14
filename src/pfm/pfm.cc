@@ -25,7 +25,7 @@ namespace PeterDB {
         struct stat fileInfo{};
 
         FILE* file;
-        file = fopen(fileName.c_str(), "wr+");
+        file = fopen(fileName.c_str(), "wrb+");
 
         pfmInitFile(file);
         if(file == nullptr)
@@ -53,7 +53,7 @@ namespace PeterDB {
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
 
-        FILE* file = fopen(fileName.c_str(), "r+");
+        FILE* file = fopen(fileName.c_str(), "rb+");
         if(file == nullptr)
         {
             perror("File failed to open");
@@ -76,10 +76,13 @@ namespace PeterDB {
     RC PagedFileManager::closeFile(FileHandle &fileHandle) {
         FILE* file = fileHandle.myFile;
         fileHandle.flushFile();
-
-        int result = fclose(file);
-        //printf("file closed\n");
-        return 0;
+        if(file != nullptr){
+            fclose(file);
+            return 0;
+        }
+        else{
+            return -1;
+        }
     }
 
     void PagedFileManager::pfmInitFile(FILE* file) {
