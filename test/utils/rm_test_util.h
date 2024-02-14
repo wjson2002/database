@@ -519,6 +519,7 @@ namespace PeterDBTesting {
             // Is the sentiment field not-NULL?
             if (!((nullsIndicator[0] >> 4u) & 1u)) {
                 *(float *) ((char *) buffer + offset) = salt / 2.3 * seed * 1000;
+
                 offset += sizeof(float);
             }
 

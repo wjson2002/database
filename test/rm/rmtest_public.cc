@@ -1083,7 +1083,7 @@ namespace PeterDBTesting {
 
         size_t tupleSize;
         bufSize = 1000;
-        int numTuples = 100;
+        int numTuples = 1000;
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
         std::vector<float> lats;
@@ -1135,7 +1135,7 @@ namespace PeterDBTesting {
         // Scan
         float latReturned, lngReturned;
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
-            printf("VALUE:%d\n",(*(char *) outBuffer) >> 7 & 1u);
+            //printf("VALUE:%d\n",(*(char *) outBuffer) >> 7 & 1u);
             if ((*(char *) outBuffer) >> 7 & 1u) {
 
                 latReturned = *(float *) ((char *) outBuffer + 1);
@@ -1171,6 +1171,7 @@ namespace PeterDBTesting {
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
 
             unsigned tweetIdReturned = *(unsigned *) ((char *) outBuffer + 1);
+            printf("TweetOd:%d\n", tweetIdReturned);
             auto targetTweetId = std::find(tweet_ids.begin(), tweet_ids.end(), tweetIdReturned);
             ASSERT_NE(targetTweetId, tweet_ids.end()) << "returned tweet_id value is not from inserted.";
             tweet_ids.erase(targetTweetId);

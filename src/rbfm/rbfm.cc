@@ -47,7 +47,7 @@ namespace PeterDB {
     void RecordBasedFileManager::initSlotDirectory(FileHandle &fileHandle, PageNum pageNum){
 
         int slotSize = SLOTSIZE;
-        short freeSpace = PAGE_SIZE - slotSize;
+        short freeSpace = PAGE_SIZE - slotSize - 200;
         char numOfRecords = 0;
         char* buffer = (char*)malloc(PAGE_SIZE);
 
@@ -134,7 +134,7 @@ namespace PeterDB {
         rid.slotNum = addRecordToSlotDirectory(fileHandle, rid, recordSize, buffer, offsetPointer);
         std::memmove(buffer+offsetPointer, data, getRecordSize(recordDescriptor, data));
         fileHandle.writePage(rid.pageNum, buffer);
-        // printf("Insert to New{%d},{%d} ", rid.pageNum, rid.slotNum);
+        //printf("Insert to New{%d},{%d} ", rid.pageNum, rid.slotNum);
         return 0;
 
     }
@@ -807,7 +807,7 @@ namespace PeterDB {
             while (currentRID.pageNum < numOfPages){
 
                 char buffer[PAGE_SIZE];
-                fileHandle.readPage(pageNum, buffer);
+                fileHandle.readPage(currentRID.pageNum, buffer);
                 char numOfRecords;
                 memmove(&(numOfRecords), buffer + 2, sizeof(char));
 
@@ -839,7 +839,7 @@ namespace PeterDB {
                         } else if (attrType == TypeReal) {
                             // printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
                             if (rbfm.compareNums((float *) pointer, (float *) value, compOp, TypeReal)) {
-                                // printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
+                                printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
 
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                                 rid = currentRID;
@@ -923,6 +923,7 @@ namespace PeterDB {
             else{
                 float a = *value1;
                 float b = *value2;
+               // printf("comparing {%f}, {%f}\n", a,b);
                 if (compOp == EQ_OP){return (a == b);}
                 else if (compOp == LT_OP){return (a < b);}
                 else if (compOp == LE_OP){return (a <= b);}

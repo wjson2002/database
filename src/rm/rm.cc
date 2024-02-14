@@ -500,9 +500,9 @@ namespace PeterDB {
                             char nullbit = *((char*)readData);
 
                             int intValue = (int)(nullbit);
-                            printf("nullbit:{%c}{%d} \n", nullbit, intValue);
-                            if(intValue == -128){
-                                printf("set\n");
+
+                            if(intValue != 0){
+
                                 memset(data, 1, 1);
                                 *(char*)data |= (1u << 7);
                             }
