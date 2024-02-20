@@ -80,7 +80,8 @@ namespace PeterDB {
         unsigned ixReadPageCounter;
         unsigned ixWritePageCounter;
         unsigned ixAppendPageCounter;
-
+        bool fileOpen;
+        FileHandle* fileHandle;
         // Constructor
         IXFileHandle();
 
