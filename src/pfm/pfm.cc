@@ -23,7 +23,9 @@ namespace PeterDB {
         //MAKE SURE TO CLOSE FILE AFTER OPENING
 
         struct stat fileInfo{};
-
+        if(stat(fileName.c_str(), &fileInfo) == 0){
+            return -1;
+        }
         FILE* file;
         file = fopen(fileName.c_str(), "wrb+");
 
@@ -34,7 +36,7 @@ namespace PeterDB {
             return -1;
         }
         else{
-            //printf("file created... now closing\n");
+            printf("file created... now closing\n");
             fclose(file);
         }
         return 0;
@@ -66,7 +68,7 @@ namespace PeterDB {
             unsigned test = -1;
             fseek(file,0,SEEK_SET);
             fread(&test ,sizeof(unsigned), 1, file);
-            // printf("OPEN File with: pages: {%d}}\n", test);
+            printf("OPEN File with: pages: {%d}}\n", test);
             return 0;
         }
 
@@ -75,8 +77,8 @@ namespace PeterDB {
 
     RC PagedFileManager::closeFile(FileHandle &fileHandle) {
         FILE* file = fileHandle.myFile;
-        fileHandle.flushFile();
         if(file != nullptr){
+            fileHandle.flushFile();
             fclose(file);
             return 0;
         }
