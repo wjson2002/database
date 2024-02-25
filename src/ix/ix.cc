@@ -4,9 +4,10 @@
 
 namespace PeterDB {
     int ENTRY_SIZE = 7 * sizeof(int);
-
+    int rootPage = 1;
     IndexManager &IndexManager::instance() {
         static IndexManager _index_manager = IndexManager();
+
         return _index_manager;
     }
 
@@ -57,7 +58,7 @@ namespace PeterDB {
 
         int length = 0;
         void* data = malloc(ENTRY_SIZE);
-        createIndex(data, attribute,key,rid, length, 0, 0, 0, 0);
+        createIndex(data, attribute,key,rid,length, 0, 0, 0, 0);
 
         void* temp = malloc(PAGE_SIZE);
         memmove(temp, data, ENTRY_SIZE);
@@ -66,12 +67,12 @@ namespace PeterDB {
         ixFileHandle.fileHandle->appendPage(temp);
         free(temp);
         free(data);
-
+        ixFileHandle.slotCount += 1;
         return 0;
     }
 
     RC IndexManager::deleteEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid) {
-        return -1;
+        return 0;
     }
 
     RC IndexManager::scan(IXFileHandle &ixFileHandle,
@@ -81,16 +82,30 @@ namespace PeterDB {
                           bool lowKeyInclusive,
                           bool highKeyInclusive,
                           IX_ScanIterator &ix_ScanIterator) {
-        return -1;
+
+        ix_ScanIterator.lowKey = lowKey;
+        ix_ScanIterator.highKey = highKey;
+        ix_ScanIterator.lowKeyInclusive = lowKeyInclusive;
+        ix_ScanIterator.highKeyInclusive = highKeyInclusive;
+        ix_ScanIterator.attribute = attribute;
+        ix_ScanIterator.fileHandle = ixFileHandle.fileHandle;
+        ix_ScanIterator.ixFileHandle = ixFileHandle;
+        void* pageBuffer = malloc(PAGE_SIZE);
+        int key,page1,slot1,page2,slot2;
+        PeterDB::RID rid{};
+        ixFileHandle.fileHandle->readPage(rootPage, pageBuffer);
+        readIndex(pageBuffer,key,rid,page1,slot1,page2,slot2);
+        ix_ScanIterator.currentPage = page1;
+        ix_ScanIterator.currentSlot = slot1;
+        return 0;
     }
 
     RC IndexManager::printBTree(IXFileHandle &ixFileHandle, const Attribute &attribute, std::ostream &out) const {
-
         int key,page1,slot1,page2,slot2;
         PeterDB::RID rid{};
         void* data = malloc(PAGE_SIZE);
-        ixFileHandle.fileHandle->readPage(0, data);
-        readIndex(data, key,rid, page1,slot1,page2,slot2);
+        ixFileHandle.fileHandle->readPage(rootPage, data);
+        readIndex(data,key,rid,page1,slot1,page2,slot2);
 
         std::string json_string = "{";
         //root is pointing to root
@@ -99,9 +114,9 @@ namespace PeterDB {
                             std::to_string(key) +
                             ":[" + std::to_string(rid.pageNum) + "," + std::to_string(rid.slotNum) + "]\"";
         }
+
         printf("Key: %d, RID: (%d, %d), Page 1: %d, Slot 1: %d, Page 2: %d, Slot 2: %d\n",
                key, rid.pageNum, rid.slotNum, page1, slot1, page2, slot2);
-
 
         json_string += "]}";
 
@@ -113,7 +128,6 @@ namespace PeterDB {
 
     RC IndexManager::createIndex(void *data, const PeterDB::Attribute &attribute, const void *key,
                                  const PeterDB::RID &rid,int &length, int page1, int slot1, int page2, int slot2) {
-
         memmove(data, key, sizeof(int));
         memmove((char*)data + sizeof(int), &rid.pageNum, sizeof(int));
         memmove((char*)data + 2 * sizeof(int), &rid.slotNum, sizeof(int));
@@ -136,8 +150,7 @@ namespace PeterDB {
         return 0;
     }
 
-    RC
-    IndexManager::readRoot(const void *data, int &key, RID &rid, int &page1, int &slot1, int &page2, int &slot2) const {
+    RC IndexManager::readRoot(const void *data, int &key, RID &rid, int &page1, int &slot1, int &page2, int &slot2) const {
         return 0;
     }
 
@@ -148,19 +161,32 @@ namespace PeterDB {
     }
 
     RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
-        return -1;
+        printf("SLOT COUNT: %d\n",ixFileHandle.slotCount);
+        if(currentSlot < ixFileHandle.slotCount){
+            void* pageBuffer = malloc(PAGE_SIZE);
+            fileHandle->readPage(currentPage, pageBuffer);
+            int page1,slot1,page2,slot2;
+
+
+            int tempKey;
+            IndexManager::instance().readIndex(pageBuffer,tempKey,rid,page1,slot1,page2,slot2);
+            memmove(key, &tempKey, sizeof(int));
+            currentSlot += 1;
+            return 0;
+        }
+        return IX_EOF;
+
     }
 
     RC IX_ScanIterator::close() {
-        return -1;
+        return 0;
     }
 
     IXFileHandle::IXFileHandle() {
         ixReadPageCounter = 0;
         ixWritePageCounter = 0;
         ixAppendPageCounter = 0;
-        keyCount = 0;
-        keyBucketCount = 0;
+
         fileOpen = false;
         FileHandle* fileHandle;
     }
@@ -170,7 +196,6 @@ namespace PeterDB {
 
     RC
     IXFileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount) {
-
         ixReadPageCounter = fileHandle->readPageCounter;
         ixWritePageCounter= fileHandle->writePageCounter;
         ixAppendPageCounter = fileHandle->appendPageCounter;
