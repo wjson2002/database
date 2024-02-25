@@ -33,7 +33,7 @@ namespace PeterDB {
 
         // Insert an entry into the given index that is indicated by the given ixFileHandle.
         RC insertEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid);
-
+        RC insertFirstEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid);
         // Delete an entry from the given index that is indicated by the given ixFileHandle.
         RC deleteEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid);
 
@@ -48,6 +48,11 @@ namespace PeterDB {
 
         // Print the B+ tree in pre-order (in a JSON record format)
         RC printBTree(IXFileHandle &ixFileHandle, const Attribute &attribute, std::ostream &out) const;
+        RC createIndex(void *data, const PeterDB::Attribute &attribute, const void *key,
+                       const PeterDB::RID &rid,int &length, int page1, int slot1, int page2, int slot2);
+        RC readRoot(const void* data, int& key, PeterDB::RID& rid, int& page1, int& slot1, int& page2, int& slot2) const;
+        RC readIndex(const void* data, int& key, PeterDB::RID& rid, int& page1, int& slot1, int& page2, int& slot2) const;
+
 
     protected:
         IndexManager() = default;                                                   // Prevent construction
@@ -81,6 +86,8 @@ namespace PeterDB {
         unsigned ixWritePageCounter;
         unsigned ixAppendPageCounter;
         bool fileOpen;
+        int keyCount;
+        int keyBucketCount;
         FileHandle* fileHandle;
         // Constructor
         IXFileHandle();
