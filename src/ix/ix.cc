@@ -25,14 +25,19 @@ namespace PeterDB {
         if(ixFileHandle.fileOpen){
             return -1;
         }
-        ixFileHandle.fileOpen = true;
+
         PagedFileManager& pfm = PagedFileManager::instance();
         FileHandle *fh = new FileHandle();
         ixFileHandle.fileHandle = fh;
 
-        pfm.openFile(fileName, *fh);
-        printf("%s opened\n", fh->FileName.c_str());
-        return 0;
+        int result = pfm.openFile(fileName, *fh);
+        if(result == 0){
+            ixFileHandle.fileOpen = true;
+            return 0;
+        }else{
+            ixFileHandle.fileOpen = false;
+        }
+
     }
 
     RC IndexManager::closeFile(IXFileHandle &ixFileHandle) {
@@ -96,7 +101,9 @@ namespace PeterDB {
                           bool lowKeyInclusive,
                           bool highKeyInclusive,
                           IX_ScanIterator &ix_ScanIterator) {
-
+        if(ixFileHandle.fileOpen == false){
+            return -1;
+        }
         ix_ScanIterator.lowKey = lowKey;
         ix_ScanIterator.highKey = highKey;
         ix_ScanIterator.lowKeyInclusive = lowKeyInclusive;
