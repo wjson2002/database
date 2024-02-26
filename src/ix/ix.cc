@@ -72,7 +72,21 @@ namespace PeterDB {
     }
 
     RC IndexManager::deleteEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid) {
-        return 0;
+        void* pageBuffer = malloc(PAGE_SIZE);
+        ixFileHandle.fileHandle->readPage(rootPage, pageBuffer);
+        ixFileHandle.fileHandle->readPage(rootPage, pageBuffer);
+        int page1,slot1,page2,slot2;
+        RID readRid;
+        int tempKey;
+        IndexManager::instance().readIndex(pageBuffer,tempKey,readRid,page1,slot1,page2,slot2);
+
+        if(tempKey == *(int*)key){
+            memset(pageBuffer, -1, ENTRY_SIZE);
+            ixFileHandle.fileHandle->writePage(rootPage,pageBuffer);
+
+            return 0;
+        }
+        return -1;
     }
 
     RC IndexManager::scan(IXFileHandle &ixFileHandle,
@@ -109,10 +123,13 @@ namespace PeterDB {
 
         std::string json_string = "{";
         //root is pointing to root
-        if(slot1 == 0){
+        if(slot1 == 0 && slot1 != -1){
             json_string += R"("keys":[")" +
                             std::to_string(key) +
                             ":[" + std::to_string(rid.pageNum) + "," + std::to_string(rid.slotNum) + "]\"";
+        }
+        else{
+            json_string += "\"keys\":[";
         }
 
         printf("Key: %d, RID: (%d, %d), Page 1: %d, Slot 1: %d, Page 2: %d, Slot 2: %d\n",

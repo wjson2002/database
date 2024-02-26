@@ -162,7 +162,7 @@ namespace PeterDBTesting {
         ASSERT_EQ(ixFileHandle.collectCounterValues(rcAfter, wcAfter, acAfter), success)
                                     << "indexManager::collectCounterValues() should succeed.";
 
-
+        printf("RCAF {%d}, rc {%d}\n",rcAfter,rc);
         // check counters
         EXPECT_EQ(rcAfter - rc, 2); // one for tree root pointer, and one for tree node
         EXPECT_IN_RANGE(wcAfter - wc, 1, 2); // write to update the first tree node, persist counters
