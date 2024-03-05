@@ -68,7 +68,7 @@ namespace PeterDB {
             unsigned test = -1;
             fseek(file,0,SEEK_SET);
             fread(&test ,sizeof(unsigned), 1, file);
-            printf("OPEN File with: pages: {%d}}\n", test);
+
             return 0;
         }
 

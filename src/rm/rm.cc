@@ -1,6 +1,6 @@
 
 #include "src/include/rm.h"
-
+#include "src/include/ix.h"
 #include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,6 +128,18 @@ namespace PeterDB {
             return -1;
         }
         if(TableExists(tableName)){
+
+            std::vector<Attribute> attrs;
+            getAttributes(tableName, attrs);
+
+
+
+            for(auto i : attrs){
+                printf("{%s}\n",i.name.c_str());
+                std::string file = i.name + ".idx";
+                IndexManager::instance().destroyFile(file);
+            }
+
             RecordBasedFileManager::instance().destroyFile(tableName);
             int tableInt = tableNameToIdMap[tableName];
             tableNameToIdMap.erase(tableName);
@@ -462,7 +474,6 @@ namespace PeterDB {
         auto it = tableNameToIdMap.find(tableName);
 
         if(it == tableNameToIdMap.end()){
-            printf("Table {%s} not found", tableName.c_str());
             return false;
         }
         else{
@@ -561,11 +572,17 @@ namespace PeterDB {
 
     // QE IX related
     RC RelationManager::createIndex(const std::string &tableName, const std::string &attributeName){
-        return -1;
+        printf("Create INdex for {%s}, atrr name: {%s}\n", tableName.c_str(), attributeName.c_str());
+        std::string index = attributeName + ".idx";
+        IndexManager::instance().createFile(index);
+
+        return 0;
     }
 
     RC RelationManager::destroyIndex(const std::string &tableName, const std::string &attributeName){
-        return -1;
+        std::string index = attributeName + ".idx";
+        IndexManager::instance().destroyFile(index);
+        return 0;
     }
 
     // indexScan returns an iterator to allow the caller to go through qualified entries in index
