@@ -190,6 +190,10 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+        Iterator* input;
+        std::vector<std::string> attrNames;
+        std::vector<Attribute> attributes;
+        std::vector<Attribute> projectedAttrs;
     };
 
     class BNLJoin : public Iterator {

@@ -1,7 +1,10 @@
 #include "src/include/qe.h"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 #include <string.h>
+
+
 namespace PeterDB {
     RC Iterator::getAttribute(std::vector<Attribute> &attrs,const std::string& attr, void* data, void* attrData, AttrType& attrType) {
         char* dataPointer = (char*)data;
@@ -56,10 +59,10 @@ namespace PeterDB {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         switch (type) {
             case TypeInt:
-                printf("{%d} to {%d}\n", *(int*)left, *(int*)right);
+                //printf("{%d} to {%d}\n", *(int*)left, *(int*)right);
                 return rbfm.compareNums((int*)left,(int*)right,op, type);
             case TypeReal:
-                printf("{%f}\n", *(float*)left);
+                //printf("{%f}\n", *(float*)left);
                 return rbfm.compareNums((float *)left,(float *)right,op, type);
             case TypeVarChar:
                 char* pointer = (char*)left;
@@ -68,7 +71,10 @@ namespace PeterDB {
                 char* varChar = new char[length + 1];
                 memcpy(varChar, pointer, length);
                 varChar[length] = '\0';
-                return rbfm.compareString((char*)left,(char*)right,op);
+                bool result = rbfm.compareString((char*)left,(char*)right,op);
+                free(varChar);
+                return result;
+
         }
         return false;
     }
@@ -86,8 +92,7 @@ namespace PeterDB {
         std::vector<Attribute> attrs;
         getAttributes(attrs);
 
-        while(auto i = this->input->getNextTuple(data) != -1){
-            RelationManager::instance().printTuple(attrs, data, std::cout);
+        while(this->input->getNextTuple(data) != -1){
             void* lhsAttr[PAGE_SIZE];
             Iterator::getAttribute(attrs, condition.lhsAttr, data, lhsAttr, this->type);
             if(condition.bRhsIsAttr == false){
@@ -110,9 +115,28 @@ namespace PeterDB {
     }
 
 
-
-
     Project::Project(Iterator *input, const std::vector<std::string> &attrNames) {
+        this->input = input;
+        this->attrNames = attrNames;
+
+        this->input->getAttributes(attributes);
+        for (const auto& attrName : attrNames) {
+            printf("Attribute Names: %s\n", attrName.c_str());
+        }
+        for(auto a : attrNames){
+            for(auto attr : attributes){
+                if(a == attr.name){
+                    projectedAttrs.push_back(attr);
+                    break;
+                }
+
+            }
+        }
+
+        for(const auto& a : projectedAttrs){
+            printf("Projected {%s}\n", a.name.c_str());
+        }
+
 
     }
 
@@ -121,11 +145,51 @@ namespace PeterDB {
     }
 
     RC Project::getNextTuple(void *data) {
-        return -1;
+        void* temp[PAGE_SIZE];
+
+        while(this->input->getNextTuple(temp) != -1){
+            char* pointer = (char*)data;
+
+            pointer+=1;
+            memset(data, 0, 1);
+
+            for(auto a : projectedAttrs){
+                void* lhsAttr = malloc(a.length);
+
+                Iterator::getAttribute(attributes, a.name, temp, lhsAttr, a.type);
+                switch (a.type) {
+                    case TypeInt:
+                        printf("value {%d}\n", *(int*)lhsAttr);
+                        memmove(pointer, lhsAttr, 4);
+                        pointer += 4;
+                        break;
+                    case TypeReal:
+                        printf("value {%f}\n", *(float*)lhsAttr);
+                        memmove(pointer, lhsAttr, 4);
+                        pointer += 4;
+                        break;
+                    case TypeVarChar:
+                        char* tempPointer = (char*)lhsAttr;
+                        int* length = (int*)tempPointer;
+                        memmove(pointer, length, 4);
+                        pointer += 4;
+                        tempPointer += 4;
+                        memmove(pointer, tempPointer, *length);
+                        pointer += *length;
+                        break;
+
+                }
+            }
+
+            return 0;
+        }
+
+        return QE_EOF;
     }
 
     RC Project::getAttributes(std::vector<Attribute> &attrs) const {
-        return -1;
+        attrs = projectedAttrs;
+        return 0;
     }
 
     BNLJoin::BNLJoin(Iterator *leftIn, TableScan *rightIn, const Condition &condition, const unsigned int numPages) {

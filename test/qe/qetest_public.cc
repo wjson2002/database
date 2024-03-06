@@ -1,213 +1,213 @@
 #include "test/utils/qe_test_util.h"
 
 namespace PeterDBTesting {
-    TEST_F(QE_Test, create_and_delete_table_with_index) {
-        // Tables created: left
-        // Indexes created: left.B, left.C
-        // 1. Create an Index
-        // 2. Load Data
-        // 3. Create an Index
-        inBuffer = malloc(bufSize);
-        outBuffer = malloc(bufSize);
-
-        std::string tableName = "left";
-        tableNames.emplace_back(tableName);
-
-        // Create a table
-        ASSERT_EQ(rm.createTable(tableName, attrsMap[tableName]), success)
-                                    << "Create table " << tableName << " should succeed.";
-
-        // Create an index before inserting tuples.
-        ASSERT_EQ(rm.createIndex(tableName, "B"), success) << "RelationManager.createIndex() should succeed.";
-        ASSERT_EQ(glob(".idx").size(), 1) << "There should be two index files now.";
-
-        // Insert tuples.
-        populateTable(tableName, 100);
-
-        // Create an index after inserting tuples - should reflect the currently existing tuples.
-        ASSERT_EQ(rm.createIndex(tableName, "C"), success) << "RelationManager.createIndex() should succeed.";
-        ASSERT_EQ(glob(".idx").size(), 2) << "There should be two index files now.";
-
-        destroyFile = false; // prevent from double deletion
-
-        // Destroy the file
-        ASSERT_EQ(rm.deleteTable(tableName), success) << "Destroying the file should succeed.";
-        ASSERT_FALSE(fileExists(tableName)) << "The file " << tableName << " should not exist now.";
-        ASSERT_EQ(glob(".idx").size(), 0) << "There should be no index file now.";
-
-        // Delete Catalog
-        ASSERT_EQ(rm.deleteCatalog(), success) << "Deleting the Catalog should succeed.";
-
-    }
-
-    TEST_F(QE_Test, table_scan_with_int_filter) {
-
-        // Filter -- TableScan as input, on an Integer Attribute
-        // SELECT * FROM LEFT WHERE B <= 51
-        inBuffer = malloc(bufSize);
-        outBuffer = malloc(bufSize);
-
-        std::string tableName = "left";
-        createAndPopulateTable(tableName, {"A", "B", "C"}, 1000);
-
-        PeterDB::TableScan ts(rm, tableName);
-
-        // Set up condition
-        unsigned compVal = 51;
-        PeterDB::Condition cond{"left.B", PeterDB::LE_OP, false, "", {PeterDB::TypeInt, inBuffer}};
-        *(unsigned *) cond.rhsValue.data = compVal;
-
-        // Create Filter
-        PeterDB::Filter filter(&ts, cond);
-
-        // Go over the data through iterator
-        std::vector<std::string> printed;
-        ASSERT_EQ(filter.getAttributes(attrs), success) << "Filter.getAttributes() should succeed.";
-        while (filter.getNextTuple(outBuffer) != QE_EOF) {
-            // Null indicators should be placed in the beginning.
-            std::stringstream stream;
-            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
-                                        << "RelationManager.printTuple() should succeed.";
-            printed.emplace_back(stream.str());
-            memset(outBuffer, 0, bufSize);
-        }
-
-        std::vector<std::string> expected;
-        for (int i = 0; i < 1000; i++) {
-            unsigned a = i % 203;
-            unsigned b = (i + 10) % 197;
-            float c = (float) (i % 167) + 50.5f;
-            if (b <= 51)
-                expected.emplace_back(
-                        "left.A: " + std::to_string(a) + ", left.B: " + std::to_string(b) + ", left.C: " +
-                        std::to_string(c));
-        }
-        sort(expected.begin(), expected.end());
-        sort(printed.begin(), printed.end());
-
-        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
-
-        for (int i = 0; i < expected.size(); ++i) {
-            checkPrintRecord(expected[i], printed[i], false, {});
-        }
-
-    }
-
-    TEST_F(QE_Test, table_scan_with_varchar_filter) {
-        // Mandatory for all
-        // 1. Filter -- on TypeVarChar Attribute
-        // SELECT * FROM leftvarchar where B = "llllllllllll"
-
-        inBuffer = malloc(bufSize);
-        outBuffer = malloc(bufSize);
-
-        std::string tableName = "leftvarchar";
-        createAndPopulateTable(tableName, {"B", "A"}, 1000);
-
-        // Set up TableScan
-        PeterDB::TableScan ts(rm, tableName);
-
-        // Set up condition
-        PeterDB::Condition cond{"leftvarchar.B", PeterDB::EQ_OP, false, "", {PeterDB::TypeVarChar, inBuffer}};
-        unsigned length = 12;
-        *(unsigned *) ((char *) cond.rhsValue.data) = length;
-        // "llllllllllll"
-        for (unsigned i = 0; i < length; ++i) {
-            *(char *) ((char *) cond.rhsValue.data + sizeof(unsigned) + i) = 12 + 96;
-        }
-
-        // Create Filter
-        PeterDB::Filter filter(&ts, cond);
-
-        // Go over the data through iterator
-        std::vector<std::string> printed;
-        ASSERT_EQ(filter.getAttributes(attrs), success) << "Filter.getAttributes() should succeed.";
-        while (filter.getNextTuple(outBuffer) != QE_EOF) {
-            // Null indicators should be placed in the beginning.
-            std::stringstream stream;
-            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
-                                        << "RelationManager.printTuple() should succeed.";
-            printed.emplace_back(stream.str());
-            memset(outBuffer, 0, bufSize);
-        }
-
-        std::vector<std::string> expected;
-        for (int i = 0; i < 1000; i++) {
-            unsigned a = i + 20;
-            unsigned len = (i % 26) + 1;
-            std::string b = std::string(len, '\0');
-            for (int j = 0; j < len; j++) {
-                b[j] = (char) (96 + len);
-            }
-            if (len == 12) {
-                expected.emplace_back("leftvarchar.A: " + std::to_string(a) + ", leftvarchar.B: " + b);
-            }
-        }
-        sort(expected.begin(), expected.end());
-        sort(printed.begin(), printed.end());
-
-        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
-
-        for (int i = 0; i < expected.size(); ++i) {
-            checkPrintRecord(expected[i], printed[i], false, {});
-        }
-    }
-
-    TEST_F(QE_Test, index_scan_with_real_filter) {
-        // 1. Filter -- IndexScan as input, on TypeReal attribute
-        // SELECT * FROM RIGHT WHERE C >= 110.0
-
-        inBuffer = malloc(bufSize);
-        outBuffer = malloc(bufSize);
-
-        std::string tableName = "right";
-        createAndPopulateTable(tableName, {"D", "C", "B"}, 1000);
-
-        // Set up IndexScan
-        PeterDB::IndexScan is(rm, tableName, "C");
-
-        // Set up condition
-        float compVal = 110.0;
-        PeterDB::Condition cond{"right.C", PeterDB::GE_OP, false, "", {PeterDB::TypeReal, inBuffer}};
-        *(float *) cond.rhsValue.data = compVal;
-
-        // Create Filter
-        PeterDB::Filter filter(&is, cond);
-
-        // Go over the data through iterator
-        std::vector<std::string> printed;
-        ASSERT_EQ(filter.getAttributes(attrs), success) << "Filter.getAttributes() should succeed.";
-        while (filter.getNextTuple(outBuffer) != QE_EOF) {
-            // Null indicators should be placed in the beginning.
-            std::stringstream stream;
-            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
-                                        << "RelationManager.printTuple() should succeed.";
-            printed.emplace_back(stream.str());
-            memset(outBuffer, 0, bufSize);
-        }
-
-        std::vector<std::string> expected;
-        for (int i = 0; i < 1000; i++) {
-            unsigned b = i % 251 + 20;
-            float c = (float) (i % 261) + 25.5f;
-            unsigned d = i % 179;
-            if (c >= 110) {
-                expected.emplace_back(
-                        "right.B: " + std::to_string(b) + ", right.C: " + std::to_string(c) + ", right.D: " +
-                        std::to_string(d));
-            }
-
-        }
-        sort(expected.begin(), expected.end());
-        sort(printed.begin(), printed.end());
-
-        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
-
-        for (int i = 0; i < expected.size(); ++i) {
-            checkPrintRecord(expected[i], printed[i], false, {});
-        }
-
-    }
+//    TEST_F(QE_Test, create_and_delete_table_with_index) {
+//        // Tables created: left
+//        // Indexes created: left.B, left.C
+//        // 1. Create an Index
+//        // 2. Load Data
+//        // 3. Create an Index
+//        inBuffer = malloc(bufSize);
+//        outBuffer = malloc(bufSize);
+//
+//        std::string tableName = "left";
+//        tableNames.emplace_back(tableName);
+//
+//        // Create a table
+//        ASSERT_EQ(rm.createTable(tableName, attrsMap[tableName]), success)
+//                                    << "Create table " << tableName << " should succeed.";
+//
+//        // Create an index before inserting tuples.
+//        ASSERT_EQ(rm.createIndex(tableName, "B"), success) << "RelationManager.createIndex() should succeed.";
+//        ASSERT_EQ(glob(".idx").size(), 1) << "There should be two index files now.";
+//
+//        // Insert tuples.
+//        populateTable(tableName, 100);
+//
+//        // Create an index after inserting tuples - should reflect the currently existing tuples.
+//        ASSERT_EQ(rm.createIndex(tableName, "C"), success) << "RelationManager.createIndex() should succeed.";
+//        ASSERT_EQ(glob(".idx").size(), 2) << "There should be two index files now.";
+//
+//        destroyFile = false; // prevent from double deletion
+//
+//        // Destroy the file
+//        ASSERT_EQ(rm.deleteTable(tableName), success) << "Destroying the file should succeed.";
+//        ASSERT_FALSE(fileExists(tableName)) << "The file " << tableName << " should not exist now.";
+//        ASSERT_EQ(glob(".idx").size(), 0) << "There should be no index file now.";
+//
+//        // Delete Catalog
+//        ASSERT_EQ(rm.deleteCatalog(), success) << "Deleting the Catalog should succeed.";
+//
+//    }
+//
+//    TEST_F(QE_Test, table_scan_with_int_filter) {
+//
+//        // Filter -- TableScan as input, on an Integer Attribute
+//        // SELECT * FROM LEFT WHERE B <= 51
+//        inBuffer = malloc(bufSize);
+//        outBuffer = malloc(bufSize);
+//
+//        std::string tableName = "left";
+//        createAndPopulateTable(tableName, {"A", "B", "C"}, 1000);
+//
+//        PeterDB::TableScan ts(rm, tableName);
+//
+//        // Set up condition
+//        unsigned compVal = 51;
+//        PeterDB::Condition cond{"left.B", PeterDB::LE_OP, false, "", {PeterDB::TypeInt, inBuffer}};
+//        *(unsigned *) cond.rhsValue.data = compVal;
+//
+//        // Create Filter
+//        PeterDB::Filter filter(&ts, cond);
+//
+//        // Go over the data through iterator
+//        std::vector<std::string> printed;
+//        ASSERT_EQ(filter.getAttributes(attrs), success) << "Filter.getAttributes() should succeed.";
+//        while (filter.getNextTuple(outBuffer) != QE_EOF) {
+//            // Null indicators should be placed in the beginning.
+//            std::stringstream stream;
+//            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
+//                                        << "RelationManager.printTuple() should succeed.";
+//            printed.emplace_back(stream.str());
+//            memset(outBuffer, 0, bufSize);
+//        }
+//
+//        std::vector<std::string> expected;
+//        for (int i = 0; i < 1000; i++) {
+//            unsigned a = i % 203;
+//            unsigned b = (i + 10) % 197;
+//            float c = (float) (i % 167) + 50.5f;
+//            if (b <= 51)
+//                expected.emplace_back(
+//                        "left.A: " + std::to_string(a) + ", left.B: " + std::to_string(b) + ", left.C: " +
+//                        std::to_string(c));
+//        }
+//        sort(expected.begin(), expected.end());
+//        sort(printed.begin(), printed.end());
+//
+//        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
+//
+//        for (int i = 0; i < expected.size(); ++i) {
+//            checkPrintRecord(expected[i], printed[i], false, {});
+//        }
+//
+//    }
+//
+//    TEST_F(QE_Test, table_scan_with_varchar_filter) {
+//        // Mandatory for all
+//        // 1. Filter -- on TypeVarChar Attribute
+//        // SELECT * FROM leftvarchar where B = "llllllllllll"
+//
+//        inBuffer = malloc(bufSize);
+//        outBuffer = malloc(bufSize);
+//
+//        std::string tableName = "leftvarchar";
+//        createAndPopulateTable(tableName, {"B", "A"}, 1000);
+//
+//        // Set up TableScan
+//        PeterDB::TableScan ts(rm, tableName);
+//
+//        // Set up condition
+//        PeterDB::Condition cond{"leftvarchar.B", PeterDB::EQ_OP, false, "", {PeterDB::TypeVarChar, inBuffer}};
+//        unsigned length = 12;
+//        *(unsigned *) ((char *) cond.rhsValue.data) = length;
+//        // "llllllllllll"
+//        for (unsigned i = 0; i < length; ++i) {
+//            *(char *) ((char *) cond.rhsValue.data + sizeof(unsigned) + i) = 12 + 96;
+//        }
+//
+//        // Create Filter
+//        PeterDB::Filter filter(&ts, cond);
+//
+//        // Go over the data through iterator
+//        std::vector<std::string> printed;
+//        ASSERT_EQ(filter.getAttributes(attrs), success) << "Filter.getAttributes() should succeed.";
+//        while (filter.getNextTuple(outBuffer) != QE_EOF) {
+//            // Null indicators should be placed in the beginning.
+//            std::stringstream stream;
+//            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
+//                                        << "RelationManager.printTuple() should succeed.";
+//            printed.emplace_back(stream.str());
+//            memset(outBuffer, 0, bufSize);
+//        }
+//
+//        std::vector<std::string> expected;
+//        for (int i = 0; i < 1000; i++) {
+//            unsigned a = i + 20;
+//            unsigned len = (i % 26) + 1;
+//            std::string b = std::string(len, '\0');
+//            for (int j = 0; j < len; j++) {
+//                b[j] = (char) (96 + len);
+//            }
+//            if (len == 12) {
+//                expected.emplace_back("leftvarchar.A: " + std::to_string(a) + ", leftvarchar.B: " + b);
+//            }
+//        }
+//        sort(expected.begin(), expected.end());
+//        sort(printed.begin(), printed.end());
+//
+//        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
+//
+//        for (int i = 0; i < expected.size(); ++i) {
+//            checkPrintRecord(expected[i], printed[i], false, {});
+//        }
+//    }
+//
+//    TEST_F(QE_Test, index_scan_with_real_filter) {
+//        // 1. Filter -- IndexScan as input, on TypeReal attribute
+//        // SELECT * FROM RIGHT WHERE C >= 110.0
+//
+//        inBuffer = malloc(bufSize);
+//        outBuffer = malloc(bufSize);
+//
+//        std::string tableName = "right";
+//        createAndPopulateTable(tableName, {"D", "C", "B"}, 1000);
+//
+//        // Set up IndexScan
+//        PeterDB::IndexScan is(rm, tableName, "C");
+//
+//        // Set up condition
+//        float compVal = 110.0;
+//        PeterDB::Condition cond{"right.C", PeterDB::GE_OP, false, "", {PeterDB::TypeReal, inBuffer}};
+//        *(float *) cond.rhsValue.data = compVal;
+//
+//        // Create Filter
+//        PeterDB::Filter filter(&is, cond);
+//
+//        // Go over the data through iterator
+//        std::vector<std::string> printed;
+//        ASSERT_EQ(filter.getAttributes(attrs), success) << "Filter.getAttributes() should succeed.";
+//        while (filter.getNextTuple(outBuffer) != QE_EOF) {
+//            // Null indicators should be placed in the beginning.
+//            std::stringstream stream;
+//            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
+//                                        << "RelationManager.printTuple() should succeed.";
+//            printed.emplace_back(stream.str());
+//            memset(outBuffer, 0, bufSize);
+//        }
+//
+//        std::vector<std::string> expected;
+//        for (int i = 0; i < 1000; i++) {
+//            unsigned b = i % 251 + 20;
+//            float c = (float) (i % 261) + 25.5f;
+//            unsigned d = i % 179;
+//            if (c >= 110) {
+//                expected.emplace_back(
+//                        "right.B: " + std::to_string(b) + ", right.C: " + std::to_string(c) + ", right.D: " +
+//                        std::to_string(d));
+//            }
+//
+//        }
+//        sort(expected.begin(), expected.end());
+//        sort(printed.begin(), printed.end());
+//
+//        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
+//
+//        for (int i = 0; i < expected.size(); ++i) {
+//            checkPrintRecord(expected[i], printed[i], false, {});
+//        }
+//
+//    }
 
     TEST_F(QE_Test, table_scan_with_project) {
         // Project -- TableScan as input

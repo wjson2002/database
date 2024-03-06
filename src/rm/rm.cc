@@ -572,7 +572,7 @@ namespace PeterDB {
 
     // QE IX related
     RC RelationManager::createIndex(const std::string &tableName, const std::string &attributeName){
-        printf("Create INdex for {%s}, atrr name: {%s}\n", tableName.c_str(), attributeName.c_str());
+
         std::string index = attributeName + ".idx";
         IndexManager::instance().createFile(index);
 

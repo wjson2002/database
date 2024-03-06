@@ -36,7 +36,7 @@ namespace PeterDB {
             return -1;
         }
         else{
-            printf("file created... now closing\n");
+            //printf("file created... now closing\n");
             fclose(file);
         }
         return 0;
