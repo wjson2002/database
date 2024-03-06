@@ -844,7 +844,7 @@ namespace PeterDB {
                         } else if (attrType == TypeReal) {
                             // printf("Read Float:{%d}, {%d}\n", currentRID.pageNum, currentRID.slotNum);
                             if (rbfm.compareNums((float *) pointer, (float *) value, compOp, TypeReal)) {
-                                printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
+                                //printf("Macth found:{%f}, {%f}}\n", *(float*)pointer, *(float*)value);
 
                                 rbfm.readRecord(fileHandle, recordDescriptor, currentRID, data);
                                 rid = currentRID;
@@ -862,7 +862,7 @@ namespace PeterDB {
                             char* pointerPointer = pointer;
                             int strLen;
                             memcpy(&strLen, pointer, sizeof(int));
-                            printf("Real len{%d} ",strLen);
+                            //printf("Real len{%d} ",strLen);
                             char* string = new char[strLen + 1];
                             valuePointer+=4;
                             pointerPointer+=4;
@@ -948,13 +948,13 @@ namespace PeterDB {
             return (compOp == NO_OP);
         }
         if(strlen(value1) == 0){
-            printf("empty string");
+           // printf("empty string");
             return false;
         }
 
         // Print as String
         int result = strcmp(value1, value2);
-        printf("comparing {%s}, {%s} , {%d}: %zu", value1, value2,result, strlen(value1));
+        //printf("comparing {%s}, {%s} , {%d}: %zu", value1, value2,result, strlen(value1));
         if(checkString(value1, strlen(value1))){
             return false;
         }

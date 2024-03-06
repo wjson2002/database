@@ -11,7 +11,7 @@
 namespace PeterDB {
 
 #define QE_EOF (-1)  // end of the index scan
-    typedef enum AggregateOp {
+    typedef enum AggregateOrp {
         MIN = 0, MAX, COUNT, SUM, AVG
     } AggregateOp;
 
@@ -41,6 +41,9 @@ namespace PeterDB {
         virtual RC getAttributes(std::vector<Attribute> &attrs) const = 0;
 
         virtual ~Iterator() = default;
+
+        RC getAttribute(std::vector<Attribute> &attrs,const std::string& attr, void* data, void* attrData, AttrType& attrType);
+        bool compare(void* left, void* right, AttrType type, CompOp op);
     };
 
     class TableScan : public Iterator {
@@ -169,6 +172,11 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        RC getAttribute(std::vector<Attribute> &attrs, const std::string& attr, void* data, void* attrData);
+        Iterator* input;
+        Condition condition;
+        AttrType type;
     };
 
     class Project : public Iterator {
