@@ -136,7 +136,7 @@ namespace PeterDB {
 
             for(auto i : attrs){
                 printf("{%s}\n",i.name.c_str());
-                std::string file = i.name + ".idx";
+                std::string file = tableName + i.name + ".idx";
                 IndexManager::instance().destroyFile(file);
             }
 
@@ -573,14 +573,14 @@ namespace PeterDB {
     // QE IX related
     RC RelationManager::createIndex(const std::string &tableName, const std::string &attributeName){
 
-        std::string index = attributeName + ".idx";
+        std::string index = tableName + attributeName + ".idx";
         IndexManager::instance().createFile(index);
-
+        printf("Create index: %s\n",index.c_str());
         return 0;
     }
 
     RC RelationManager::destroyIndex(const std::string &tableName, const std::string &attributeName){
-        std::string index = attributeName + ".idx";
+        std::string index = tableName + attributeName + ".idx";
         IndexManager::instance().destroyFile(index);
         return 0;
     }

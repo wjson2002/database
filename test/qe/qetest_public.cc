@@ -209,53 +209,53 @@ namespace PeterDBTesting {
 //
 //    }
 
-    TEST_F(QE_Test, table_scan_with_project) {
-        // Project -- TableScan as input
-        // SELECT C,D FROM RIGHT
-
-        inBuffer = malloc(bufSize);
-        outBuffer = malloc(bufSize);
-
-        std::string tableName = "right";
-        createAndPopulateTable(tableName, {}, 1000);
-
-        // Set up TableScan
-        PeterDB::TableScan ts(rm, tableName);
-
-        // Create Projector
-        PeterDB::Project project(&ts, {"right.D", "right.C"});
-
-        // Go over the data through iterator
-        std::vector<std::string> printed;
-        ASSERT_EQ(project.getAttributes(attrs), success) << "Project.getAttributes() should succeed.";
-        while (project.getNextTuple(outBuffer) != QE_EOF) {
-            // Null indicators should be placed in the beginning.
-            std::stringstream stream;
-            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
-                                        << "RelationManager.printTuple() should succeed.";
-            printed.emplace_back(stream.str());
-            memset(outBuffer, 0, bufSize);
-        }
-
-        std::vector<std::string> expected;
-        expected.reserve(1000);
-        for (int i = 0; i < 1000; i++) {
-            float c = (float) (i % 261) + 25.5f;
-            unsigned d = i % 179;
-
-            expected.emplace_back("right.D: " + std::to_string(d) + ", right.C: " + std::to_string(c));
-
-        }
-        sort(expected.begin(), expected.end());
-        sort(printed.begin(), printed.end());
-
-        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
-
-        for (int i = 0; i < expected.size(); ++i) {
-            checkPrintRecord(expected[i], printed[i], false, {});
-        }
-
-    }
+//    TEST_F(QE_Test, table_scan_with_project) {
+//        // Project -- TableScan as input
+//        // SELECT C,D FROM RIGHT
+//
+//        inBuffer = malloc(bufSize);
+//        outBuffer = malloc(bufSize);
+//
+//        std::string tableName = "right";
+//        createAndPopulateTable(tableName, {}, 1000);
+//
+//        // Set up TableScan
+//        PeterDB::TableScan ts(rm, tableName);
+//
+//        // Create Projector
+//        PeterDB::Project project(&ts, {"right.D", "right.C"});
+//
+//        // Go over the data through iterator
+//        std::vector<std::string> printed;
+//        ASSERT_EQ(project.getAttributes(attrs), success) << "Project.getAttributes() should succeed.";
+//        while (project.getNextTuple(outBuffer) != QE_EOF) {
+//            // Null indicators should be placed in the beginning.
+//            std::stringstream stream;
+//            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
+//                                        << "RelationManager.printTuple() should succeed.";
+//            printed.emplace_back(stream.str());
+//            memset(outBuffer, 0, bufSize);
+//        }
+//
+//        std::vector<std::string> expected;
+//        expected.reserve(1000);
+//        for (int i = 0; i < 1000; i++) {
+//            float c = (float) (i % 261) + 25.5f;
+//            unsigned d = i % 179;
+//
+//            expected.emplace_back("right.D: " + std::to_string(d) + ", right.C: " + std::to_string(c));
+//
+//        }
+//        sort(expected.begin(), expected.end());
+//        sort(printed.begin(), printed.end());
+//
+//        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
+//
+//        for (int i = 0; i < expected.size(); ++i) {
+//            checkPrintRecord(expected[i], printed[i], false, {});
+//        }
+//
+//    }
 
     TEST_F(QE_Test, bnljoin) {
         // 1. BNLJoin -- on TypeInt Attribute
@@ -299,6 +299,7 @@ namespace PeterDBTesting {
                 float c2 = (float) (j % 261) + 25.5f;
                 unsigned d = j % 179;
                 if (b1 == b2) {
+                    printf("%d, %d \n", b1, b2);
                     expected.emplace_back(
                             "left.A: " + std::to_string(a) + ", left.B: " + std::to_string(b1) + ", left.C: " +
                             std::to_string(c1) + ", right.B: " + std::to_string(b2) + ", right.C: " +

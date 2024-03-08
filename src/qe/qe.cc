@@ -59,10 +59,10 @@ namespace PeterDB {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         switch (type) {
             case TypeInt:
-                //printf("{%d} to {%d}\n", *(int*)left, *(int*)right);
+               // printf("{%d} to {%d}\n", *(int*)left, *(int*)right);
                 return rbfm.compareNums((int*)left,(int*)right,op, type);
             case TypeReal:
-                //printf("{%f}\n", *(float*)left);
+               // printf("{%f} to {%f}\n", *(float*)left, *(int*)right);
                 return rbfm.compareNums((float *)left,(float *)right,op, type);
             case TypeVarChar:
                 char* pointer = (char*)left;
@@ -102,7 +102,12 @@ namespace PeterDB {
                 }
             }
             else{
-
+                void* rhsAttr[PAGE_SIZE];
+                Iterator::getAttribute(attrs, condition.rhsAttr, data, rhsAttr, this->type);
+                bool result = Iterator::compare(lhsAttr, rhsAttr, this->type, condition.op);
+                if(result){
+                    return 0;
+                }
             }
 
         }
@@ -120,9 +125,9 @@ namespace PeterDB {
         this->attrNames = attrNames;
 
         this->input->getAttributes(attributes);
-        for (const auto& attrName : attrNames) {
-            printf("Attribute Names: %s\n", attrName.c_str());
-        }
+//        for (const auto& attrName : attrNames) {
+//            printf("Attribute Names: %s\n", attrName.c_str());
+//        }
         for(auto a : attrNames){
             for(auto attr : attributes){
                 if(a == attr.name){
@@ -159,12 +164,12 @@ namespace PeterDB {
                 Iterator::getAttribute(attributes, a.name, temp, lhsAttr, a.type);
                 switch (a.type) {
                     case TypeInt:
-                        printf("value {%d}\n", *(int*)lhsAttr);
+                       // printf("value {%d}\n", *(int*)lhsAttr);
                         memmove(pointer, lhsAttr, 4);
                         pointer += 4;
                         break;
                     case TypeReal:
-                        printf("value {%f}\n", *(float*)lhsAttr);
+                       // printf("value {%f}\n", *(float*)lhsAttr);
                         memmove(pointer, lhsAttr, 4);
                         pointer += 4;
                         break;
@@ -193,7 +198,34 @@ namespace PeterDB {
     }
 
     BNLJoin::BNLJoin(Iterator *leftIn, TableScan *rightIn, const Condition &condition, const unsigned int numPages) {
+        this->leftIterator = leftIn;
+        this->rightIterator = rightIn;
+        this->condition = condition;
+        this->numPages = numPages;
+        index = 0;
+        leftAttrs.clear();
+        rightAttrs.clear();
 
+        this->leftIterator->getAttributes(leftAttrs);
+        this->rightIterator->getAttributes(rightAttrs);
+        for(auto attr : leftAttrs){
+            combinedAttrs.push_back(attr);
+        }
+        for(auto attr : rightAttrs){
+            combinedAttrs.push_back(attr);
+        }
+
+        printf("Compare left %s to right %s with %d\n", condition.lhsAttr.c_str(), condition.rhsAttr.c_str(), condition.op);
+        for(auto a : leftAttrs){
+            printf("%s ", a.name.c_str());
+        }
+        printf("\n");
+        for(auto a : rightAttrs){
+            printf("%s ", a.name.c_str());
+        }
+        printf("\n");
+        this->rightMaxSize = 1;
+        this->loadRightBlock();
     }
 
     BNLJoin::~BNLJoin() {
@@ -201,12 +233,57 @@ namespace PeterDB {
     }
 
     RC BNLJoin::getNextTuple(void *data) {
-        return -1;
+        void* leftBlock[PAGE_SIZE];
+
+        AttrType leftType;
+        AttrType rightType;
+
+        while(leftIterator->getNextTuple(leftBlock) != -1){
+            RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
+            void* leftAttr[PAGE_SIZE];
+            Iterator::getAttribute(leftAttrs, condition.lhsAttr, leftBlock, leftAttr, leftType);
+            for(auto rightA : rightBlock){
+                void* rightAttr[this->rightMaxSize];
+
+                Iterator::getAttribute(rightAttrs, condition.rhsAttr, rightA, rightAttr, rightType);
+                if(compare(leftAttr, rightAttr, leftType, condition.op)){
+                    printf("Joining left:\n");
+                    RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
+                    RelationManager::instance().printTuple(rightAttrs, rightA, std::cout);
+                    int length = RecordBasedFileManager::instance().getRecordSize(leftAttrs,leftBlock);
+                    char* dataPointer = (char*)data;
+                    memmove(data, leftBlock, length);
+                    char* rightPointer = (char*)rightA;
+                    memmove(dataPointer + length, rightPointer+1, (int)(this->rightMaxSize));
+
+                    return 0;
+                }
+            }
+
+        }
+        return QE_EOF;
     }
 
     RC BNLJoin::getAttributes(std::vector<Attribute> &attrs) const {
-        return -1;
+        attrs.clear();
+        attrs = combinedAttrs;
+
+        return 0;
     }
+
+    void BNLJoin::loadRightBlock() {
+        for(auto s : rightAttrs){
+            this->rightMaxSize += s.length;
+        }
+        void* rightData[this->rightMaxSize];
+        while (rightIterator->getNextTuple(rightData) != -1) {
+            char* tupleData = new char[this->rightMaxSize];
+            memcpy(tupleData, rightData, this->rightMaxSize);
+            rightBlock.push_back(tupleData);
+            //RelationManager::instance().printTuple(rightAttrs, rightData, std::cout);
+        }
+    }
+
 
     INLJoin::INLJoin(Iterator *leftIn, IndexScan *rightIn, const Condition &condition) {
 

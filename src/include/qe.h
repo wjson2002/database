@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <limits>
-
+#include <unordered_map>
 #include "rm.h"
 #include "ix.h"
 
@@ -212,6 +212,19 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        void loadRightBlock();
+        Iterator* leftIterator;
+        Iterator* rightIterator;
+        std::vector<Attribute> leftAttrs = {};
+        std::vector<Attribute> rightAttrs = {};
+        std::vector<Attribute> combinedAttrs = {};
+        std::unordered_map<std::string, std::vector<Value>> dupMap;
+        int index = 0;
+        std::vector<void*> rightBlock;
+        Condition condition;
+        unsigned int numPages;
+        int rightMaxSize;
     };
 
     class INLJoin : public Iterator {
