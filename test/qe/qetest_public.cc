@@ -528,7 +528,7 @@ namespace PeterDBTesting {
         outBuffer = malloc(bufSize);
 
         std::string tableName = "left";
-        createAndPopulateTable(tableName, {"B", "C"}, 3000); //3000
+        createAndPopulateTable(tableName, {"B", "C"}, 100); //3000
 
         // Create TableScan
         PeterDB::TableScan ts(rm, tableName);

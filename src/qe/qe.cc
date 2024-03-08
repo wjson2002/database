@@ -358,6 +358,7 @@ namespace PeterDB {
 
         // only return once.
         if(aggReturned == false){
+            memset(data, 0, 1);
             char* pointer = (char*)data + 1;
             switch(op){
                 case MIN:
