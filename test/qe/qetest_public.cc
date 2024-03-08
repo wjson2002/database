@@ -528,7 +528,7 @@ namespace PeterDBTesting {
         outBuffer = malloc(bufSize);
 
         std::string tableName = "left";
-        createAndPopulateTable(tableName, {"B", "C"}, 100); //3000
+        createAndPopulateTable(tableName, {"B", "C"}, 3000); //3000
 
         // Create TableScan
         PeterDB::TableScan ts(rm, tableName);
@@ -1433,92 +1433,92 @@ namespace PeterDBTesting {
         ASSERT_EQ(glob("").size(), numFiles) << "GHJoin should clean after itself.";
     }
 
-//    TEST_F(QE_Test, table_scan_with_group_min_aggregation) {
-//        // Extra credit
-//        // Aggregate -- MIN (with GroupBy)
-//        // SELECT group.B, MIN(group.A) FROM group GROUP BY group.B
-//
-//        inBuffer = malloc(bufSize);
-//        outBuffer = malloc(bufSize);
-//
-//        std::string tableName = "group";
-//        createAndPopulateTable(tableName, {}, 100);
-//
-//        // Create TableScan
-//        PeterDB::TableScan ts(rm, tableName);
-//
-//        // Create Aggregate
-//        PeterDB::Aggregate agg(&ts, {"group.A", PeterDB::TypeInt, 4}, {"group.B", PeterDB::TypeInt, 4}, PeterDB::MIN);
-//
-//        // Go over the data through iterator
-//        std::vector<std::string> printed;
-//        ASSERT_EQ(agg.getAttributes(attrs), success) << "INLJoin.getAttributes() should succeed.";
-//        while (agg.getNextTuple(outBuffer) != QE_EOF) {
-//
-//            std::stringstream stream;
-//            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
-//                                        << "RelationManager.printTuple() should succeed.";
-//            printed.emplace_back(stream.str());
-//            memset(outBuffer, 0, bufSize);
-//        }
-//
-//        std::vector<std::string> expected;
-//        for (int i = 1; i < 6; i++) {
-//            expected.emplace_back("group.B: " + std::to_string(i) + ", MIN(group.A): " + std::to_string(i));
-//        }
-//        sort(expected.begin(), expected.end());
-//        sort(printed.begin(), printed.end());
-//
-//        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
-//
-//        for (int i = 0; i < expected.size(); ++i) {
-//            checkPrintRecord(expected[i], printed[i], false, {});
-//        }
-//
-//    }
-//
-//    TEST_F(QE_Test, table_scan_with_group_sum_aggregation) {
-//        // Extra credit
-//        // Aggregate -- SUM (with GroupBy)
-//        // SELECT group.B, SUM(group.A) FROM group GROUP BY group.B
-//
-//        inBuffer = malloc(bufSize);
-//        outBuffer = malloc(bufSize);
-//
-//        std::string tableName = "group";
-//        createAndPopulateTable(tableName, {}, 100);
-//
-//        // Create TableScan
-//        PeterDB::TableScan ts(rm, tableName);
-//
-//        // Create Aggregate
-//        PeterDB::Aggregate agg(&ts, {"group.A", PeterDB::TypeInt, 4}, {"group.B", PeterDB::TypeInt, 4}, PeterDB::SUM);
-//
-//        // Go over the data through iterator
-//        std::vector<std::string> printed;
-//        ASSERT_EQ(agg.getAttributes(attrs), success) << "INLJoin.getAttributes() should succeed.";
-//        while (agg.getNextTuple(outBuffer) != QE_EOF) {
-//
-//            std::stringstream stream;
-//            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
-//                                        << "RelationManager.printTuple() should succeed.";
-//            printed.emplace_back(stream.str());
-//            memset(outBuffer, 0, bufSize);
-//        }
-//
-//        std::vector<std::string> expected;
-//        for (int i = 1; i < 6; i++) {
-//            expected.emplace_back("group.B: " + std::to_string(i) + ", SUM(group.A): " + std::to_string(i * 2000));
-//        }
-//        sort(expected.begin(), expected.end());
-//        sort(printed.begin(), printed.end());
-//
-//        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
-//
-//        for (int i = 0; i < expected.size(); ++i) {
-//            checkPrintRecord(expected[i], printed[i], false, {});
-//        }
-//
-//    }
+    TEST_F(QE_Test, table_scan_with_group_min_aggregation) {
+        // Extra credit
+        // Aggregate -- MIN (with GroupBy)
+        // SELECT group.B, MIN(group.A) FROM group GROUP BY group.B
+
+        inBuffer = malloc(bufSize);
+        outBuffer = malloc(bufSize);
+
+        std::string tableName = "group";
+        createAndPopulateTable(tableName, {}, 100);
+
+        // Create TableScan
+        PeterDB::TableScan ts(rm, tableName);
+
+        // Create Aggregate
+        PeterDB::Aggregate agg(&ts, {"group.A", PeterDB::TypeInt, 4}, {"group.B", PeterDB::TypeInt, 4}, PeterDB::MIN);
+
+        // Go over the data through iterator
+        std::vector<std::string> printed;
+        ASSERT_EQ(agg.getAttributes(attrs), success) << "INLJoin.getAttributes() should succeed.";
+        while (agg.getNextTuple(outBuffer) != QE_EOF) {
+
+            std::stringstream stream;
+            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
+                                        << "RelationManager.printTuple() should succeed.";
+            printed.emplace_back(stream.str());
+            memset(outBuffer, 0, bufSize);
+        }
+
+        std::vector<std::string> expected;
+        for (int i = 1; i < 6; i++) {
+            expected.emplace_back("group.B: " + std::to_string(i) + ", MIN(group.A): " + std::to_string(i));
+        }
+        sort(expected.begin(), expected.end());
+        sort(printed.begin(), printed.end());
+
+        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
+
+        for (int i = 0; i < expected.size(); ++i) {
+            checkPrintRecord(expected[i], printed[i], false, {});
+        }
+
+    }
+
+    TEST_F(QE_Test, table_scan_with_group_sum_aggregation) {
+        // Extra credit
+        // Aggregate -- SUM (with GroupBy)
+        // SELECT group.B, SUM(group.A) FROM group GROUP BY group.B
+
+        inBuffer = malloc(bufSize);
+        outBuffer = malloc(bufSize);
+
+        std::string tableName = "group";
+        createAndPopulateTable(tableName, {}, 100);
+
+        // Create TableScan
+        PeterDB::TableScan ts(rm, tableName);
+
+        // Create Aggregate
+        PeterDB::Aggregate agg(&ts, {"group.A", PeterDB::TypeInt, 4}, {"group.B", PeterDB::TypeInt, 4}, PeterDB::SUM);
+
+        // Go over the data through iterator
+        std::vector<std::string> printed;
+        ASSERT_EQ(agg.getAttributes(attrs), success) << "INLJoin.getAttributes() should succeed.";
+        while (agg.getNextTuple(outBuffer) != QE_EOF) {
+
+            std::stringstream stream;
+            ASSERT_EQ(rm.printTuple(attrs, outBuffer, stream), success)
+                                        << "RelationManager.printTuple() should succeed.";
+            printed.emplace_back(stream.str());
+            memset(outBuffer, 0, bufSize);
+        }
+
+        std::vector<std::string> expected;
+        for (int i = 1; i < 6; i++) {
+            expected.emplace_back("group.B: " + std::to_string(i) + ", SUM(group.A): " + std::to_string(i * 2000));
+        }
+        sort(expected.begin(), expected.end());
+        sort(printed.begin(), printed.end());
+
+        ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
+
+        for (int i = 0; i < expected.size(); ++i) {
+            checkPrintRecord(expected[i], printed[i], false, {});
+        }
+
+    }
 
 } // namespace PeterDBTesting

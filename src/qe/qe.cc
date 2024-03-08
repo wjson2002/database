@@ -310,9 +310,11 @@ namespace PeterDB {
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, AggregateOp op) {
             this->input = input;
+
             this->aggAttr = aggAttr;
             this->op = op;
             this->first = true;
+            this->input->getAttributes(attributeList);
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, const Attribute &groupAttr, AggregateOp op) {
@@ -325,22 +327,68 @@ namespace PeterDB {
 
     RC Aggregate::getNextTuple(void *data) {
         void* aggBuffer[PAGE_SIZE];
-        printf("Get next Tuple: ");
+        std::vector<Attribute> attrs;
+        this->input->getAttributes(attrs);
 
-        while(this->input->getNextTuple(aggBuffer)){
+        while(this->input->getNextTuple(aggBuffer) != -1){
+            void* attr[aggAttr.length];
+            getAttribute(attrs, aggAttr.name, aggBuffer, attr, aggAttr.type);
             if(first){
-                printf("First agg\n");
-                return 0;
+                printf("First agg %d\n",*(int*)attr);
+                first = false;
+                int v = *(int*)attr;
+                min = v;
+                max = v;
+                count++;
+                sum += v;
             }
             else{
-                printf("NExt agg\n");
-                return 0;
+//                printf("Next agg %d\n",*(int*)attr);
+                int v = *(int*)attr;
+                if(v < min){
+                    min = v;
+                }
+                if(v > max){
+                    max = v;
+                }
+                count++;
+                sum += v;
             }
         }
-        return QE_EOF;
+
+        // only return once.
+        if(aggReturned == false){
+            char* pointer = (char*)data + 1;
+            switch(op){
+                case MIN:
+                    memmove(pointer, &this->min, sizeof(int));
+                    break;
+                case MAX:
+                    memmove(pointer, &this->max, sizeof(int));
+                    break;
+            }
+            aggReturned = true;
+            return 0;
+        }
+        else{
+            return QE_EOF;
+        }
+
     }
 
     RC Aggregate::getAttributes(std::vector<Attribute> &attrs) const {
+        attrs.clear();
+        for(auto a : attributeList){
+           // printf("adding attr: {%s} to {%s}",a.name.c_str(), aggAttr.name.c_str());
+            char lastChar = aggAttr.name.back();
+            if(a.name == aggAttr.name){
+
+                a.name = "MAX(" + a.name + ")";
+                attrs.push_back(a);
+                //printf("found attr: %s }", a.name.c_str());
+            }
+        }
+
         return 0;
     }
 

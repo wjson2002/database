@@ -269,6 +269,8 @@ namespace PeterDB {
         AggregateOp op;
         int min,max,count,sum,avg;
         bool first;
+        bool aggReturned = false;
+        std::vector<Attribute> attributeList;
         // Mandatory
         // Basic aggregation
         Aggregate(Iterator *input,          // Iterator of input R
