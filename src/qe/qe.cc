@@ -215,15 +215,6 @@ namespace PeterDB {
             combinedAttrs.push_back(attr);
         }
 
-        printf("Compare left %s to right %s with %d\n", condition.lhsAttr.c_str(), condition.rhsAttr.c_str(), condition.op);
-        for(auto a : leftAttrs){
-            printf("%s ", a.name.c_str());
-        }
-        printf("\n");
-        for(auto a : rightAttrs){
-            printf("%s ", a.name.c_str());
-        }
-        printf("\n");
         this->rightMaxSize = 1;
         this->loadRightBlock();
     }
@@ -239,7 +230,7 @@ namespace PeterDB {
         AttrType rightType;
 
         while(leftIterator->getNextTuple(leftBlock) != -1){
-            RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
+
             void* leftAttr[PAGE_SIZE];
             Iterator::getAttribute(leftAttrs, condition.lhsAttr, leftBlock, leftAttr, leftType);
             for(auto rightA : rightBlock){
@@ -247,9 +238,9 @@ namespace PeterDB {
 
                 Iterator::getAttribute(rightAttrs, condition.rhsAttr, rightA, rightAttr, rightType);
                 if(compare(leftAttr, rightAttr, leftType, condition.op)){
-                    printf("Joining left:\n");
-                    RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
-                    RelationManager::instance().printTuple(rightAttrs, rightA, std::cout);
+
+                    //RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
+                    //RelationManager::instance().printTuple(rightAttrs, rightA, std::cout);
                     int length = RecordBasedFileManager::instance().getRecordSize(leftAttrs,leftBlock);
                     char* dataPointer = (char*)data;
                     memmove(data, leftBlock, length);
@@ -318,7 +309,10 @@ namespace PeterDB {
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, AggregateOp op) {
-
+            this->input = input;
+            this->aggAttr = aggAttr;
+            this->op = op;
+            this->first = true;
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, const Attribute &groupAttr, AggregateOp op) {
@@ -330,11 +324,24 @@ namespace PeterDB {
     }
 
     RC Aggregate::getNextTuple(void *data) {
-        return -1;
+        void* aggBuffer[PAGE_SIZE];
+        printf("Get next Tuple: ");
+
+        while(this->input->getNextTuple(aggBuffer)){
+            if(first){
+                printf("First agg\n");
+                return 0;
+            }
+            else{
+                printf("NExt agg\n");
+                return 0;
+            }
+        }
+        return QE_EOF;
     }
 
     RC Aggregate::getAttributes(std::vector<Attribute> &attrs) const {
-        return -1;
+        return 0;
     }
 
 
