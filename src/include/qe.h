@@ -259,6 +259,21 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        void createRBFMFiles(int numFiles);
+        void loadRightBlock();
+        Iterator* leftIterator;
+        Iterator* rightIterator;
+        std::vector<Attribute> leftAttrs = {};
+        std::vector<Attribute> rightAttrs = {};
+        std::vector<Attribute> combinedAttrs = {};
+        std::unordered_map<std::string, std::vector<Value>> dupMap;
+        int index = 0;
+        std::vector<void*> rightBlock;
+        Condition condition;
+        unsigned int numPages;
+        int rightMaxSize;
+        int numPart;
     };
 
     class Aggregate : public Iterator {
@@ -266,10 +281,12 @@ namespace PeterDB {
     public:
         Iterator* input;
         Attribute aggAttr;
+        Attribute  groupAttr;
         AggregateOp op;
-        int min,max,count,sum,avg;
+        int min,max,count,sum, avg;
         bool first;
         bool aggReturned = false;
+        bool isGroup = false;
         std::vector<Attribute> attributeList;
         // Mandatory
         // Basic aggregation

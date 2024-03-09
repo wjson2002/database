@@ -293,19 +293,102 @@ namespace PeterDB {
     }
 
     GHJoin::GHJoin(Iterator *leftIn, Iterator *rightIn, const Condition &condition, const unsigned int numPartitions) {
+        this->leftIterator = leftIn;
+        this->rightIterator = rightIn;
+        this->condition = condition;
+        this->numPages = numPages;
+        index = 0;
+        leftAttrs.clear();
+        rightAttrs.clear();
 
+        this->leftIterator->getAttributes(leftAttrs);
+        this->rightIterator->getAttributes(rightAttrs);
+        for(auto attr : leftAttrs){
+            combinedAttrs.push_back(attr);
+        }
+        for(auto attr : rightAttrs){
+            combinedAttrs.push_back(attr);
+        }
+        this->numPart = numPartitions;
+        this->rightMaxSize = 1;
+        this->loadRightBlock();
+        createRBFMFiles(numPartitions);
     }
 
     GHJoin::~GHJoin() {
+        for(int i = 0;i < numPart;i++){
+            std::string fileName = "left_par_" + std::to_string(i);
+            RecordBasedFileManager::instance().destroyFile(fileName);
+        }
 
+        for(int i = 0;i < numPart;i++){
+            std::string fileName = "right_par_" + std::to_string(i);
+            RecordBasedFileManager::instance().destroyFile(fileName);
+        }
     }
 
     RC GHJoin::getNextTuple(void *data) {
-        return -1;
+        void* leftBlock[PAGE_SIZE];
+
+        AttrType leftType;
+        AttrType rightType;
+
+        while(leftIterator->getNextTuple(leftBlock) != -1){
+
+            void* leftAttr[PAGE_SIZE];
+            Iterator::getAttribute(leftAttrs, condition.lhsAttr, leftBlock, leftAttr, leftType);
+            for(auto rightA : rightBlock){
+                void* rightAttr[this->rightMaxSize];
+
+                Iterator::getAttribute(rightAttrs, condition.rhsAttr, rightA, rightAttr, rightType);
+                if(compare(leftAttr, rightAttr, leftType, condition.op)){
+
+                    //RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
+                    //RelationManager::instance().printTuple(rightAttrs, rightA, std::cout);
+                    int length = RecordBasedFileManager::instance().getRecordSize(leftAttrs,leftBlock);
+                    char* dataPointer = (char*)data;
+                    memmove(data, leftBlock, length);
+                    char* rightPointer = (char*)rightA;
+                    memmove(dataPointer + length, rightPointer+1, (int)(this->rightMaxSize));
+
+                    return 0;
+                }
+            }
+
+        }
+        return QE_EOF;
     }
 
     RC GHJoin::getAttributes(std::vector<Attribute> &attrs) const {
-        return -1;
+        attrs.clear();
+        attrs = combinedAttrs;
+
+        return 0;
+    }
+
+    void GHJoin::loadRightBlock() {
+        for(auto s : rightAttrs){
+            this->rightMaxSize += s.length;
+        }
+        void* rightData[this->rightMaxSize];
+        while (rightIterator->getNextTuple(rightData) != -1) {
+            char* tupleData = new char[this->rightMaxSize];
+            memcpy(tupleData, rightData, this->rightMaxSize);
+            rightBlock.push_back(tupleData);
+            //RelationManager::instance().printTuple(rightAttrs, rightData, std::cout);
+        }
+    }
+
+    void GHJoin::createRBFMFiles(int numFiles) {
+        for(int i = 0;i < numFiles;i++){
+            std::string fileName = "left_par_" + std::to_string(i);
+            RecordBasedFileManager::instance().createFile(fileName);
+        }
+
+        for(int i = 0;i < numFiles;i++){
+            std::string fileName = "right_par_" + std::to_string(i);
+            RecordBasedFileManager::instance().createFile(fileName);
+        }
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, AggregateOp op) {
@@ -318,6 +401,13 @@ namespace PeterDB {
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, const Attribute &groupAttr, AggregateOp op) {
+        this->input = input;
+        this->groupAttr = groupAttr;
+        this->aggAttr = aggAttr;
+        this->op = op;
+        this->first = true;
+        this->input->getAttributes(attributeList);
+        this->isGroup = true;
 
     }
 
@@ -378,19 +468,24 @@ namespace PeterDB {
     }
 
     RC Aggregate::getAttributes(std::vector<Attribute> &attrs) const {
-        attrs.clear();
-        for(auto a : attributeList){
-           // printf("adding attr: {%s} to {%s}",a.name.c_str(), aggAttr.name.c_str());
-            char lastChar = aggAttr.name.back();
-            if(a.name == aggAttr.name){
-
-                a.name = "MAX(" + a.name + ")";
-                attrs.push_back(a);
-                //printf("found attr: %s }", a.name.c_str());
+        if(!isGroup) {
+            attrs.clear();
+            for (auto a: attributeList) {
+                // printf("adding attr: {%s} to {%s}",a.name.c_str(), aggAttr.name.c_str());
+                char lastChar = aggAttr.name.back();
+                if (a.name == aggAttr.name) {
+                    a.name = "MAX(" + a.name + ")";
+                    attrs.push_back(a);
+                    //printf("found attr: %s }", a.name.c_str());
+                }
             }
-        }
 
-        return 0;
+            return 0;
+        }
+        else{
+
+            return 0;
+        }
     }
 
 
