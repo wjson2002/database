@@ -1301,10 +1301,10 @@ namespace PeterDBTesting {
         unsigned numPartitions = 10;
 
         std::string leftTableName = "left";
-        createAndPopulateTable(leftTableName, {}, 100);
+        createAndPopulateTable(leftTableName, {}, 10000);
 
         std::string rightTableName = "right";
-        createAndPopulateTable(rightTableName, {}, 100);
+        createAndPopulateTable(rightTableName, {}, 10000);
 
         // Prepare the iterator and condition
         PeterDB::TableScan leftIn(rm, "left");
@@ -1351,7 +1351,11 @@ namespace PeterDBTesting {
         }
         sort(expected.begin(), expected.end());
         sort(printed.begin(), printed.end());
-
+//        for (int i = 0; i < 500; ++i) {
+//            std::string p = expected[i];
+//            printf("%s \n", p.c_str());
+//
+//        }
         ASSERT_EQ(expected.size(), printed.size()) << "The number of returned tuple is not correct.";
 
         for (int i = 0; i < expected.size(); ++i) {
@@ -1373,10 +1377,10 @@ namespace PeterDBTesting {
         unsigned numPartitions = 7;
 
         std::string leftTableName = "left";
-        createAndPopulateTable(leftTableName, {}, 100);
+        createAndPopulateTable(leftTableName, {}, 10000);
 
         std::string rightTableName = "right";
-        createAndPopulateTable(rightTableName, {}, 100);
+        createAndPopulateTable(rightTableName, {}, 10000);
 
         // Prepare the iterator and condition
         PeterDB::TableScan leftIn(rm, "left");

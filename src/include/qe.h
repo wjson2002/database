@@ -262,6 +262,8 @@ namespace PeterDB {
 
         void createRBFMFiles(int numFiles);
         void loadRightBlock();
+        void loadLeftBlock();
+
         Iterator* leftIterator;
         Iterator* rightIterator;
         std::vector<Attribute> leftAttrs = {};
@@ -269,10 +271,15 @@ namespace PeterDB {
         std::vector<Attribute> combinedAttrs = {};
         std::unordered_map<std::string, std::vector<Value>> dupMap;
         int index = 0;
+        int leftStart = 0;
+        int rightStart = 0;
         std::vector<void*> rightBlock;
+        std::vector<void*> leftBlock;
         Condition condition;
         unsigned int numPages;
         int rightMaxSize;
+        int leftMaxSize;
+        void* leftBlockData;
         int numPart;
     };
 

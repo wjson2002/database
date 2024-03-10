@@ -295,6 +295,7 @@ namespace PeterDB {
     GHJoin::GHJoin(Iterator *leftIn, Iterator *rightIn, const Condition &condition, const unsigned int numPartitions) {
         this->leftIterator = leftIn;
         this->rightIterator = rightIn;
+
         this->condition = condition;
         this->numPages = numPages;
         index = 0;
@@ -311,52 +312,62 @@ namespace PeterDB {
         }
         this->numPart = numPartitions;
         this->rightMaxSize = 1;
+        this->leftMaxSize = 1;
         this->loadRightBlock();
+        this->loadLeftBlock();
+
         createRBFMFiles(numPartitions);
+        int index = 0;
     }
 
     GHJoin::~GHJoin() {
         for(int i = 0;i < numPart;i++){
-            std::string fileName = "left_par_" + std::to_string(i);
+            std::string fileName = "left_join_" + std::to_string(i) + ".idx";
+            printf("destory: {%s}\n", fileName.c_str());
             RecordBasedFileManager::instance().destroyFile(fileName);
         }
 
         for(int i = 0;i < numPart;i++){
-            std::string fileName = "right_par_" + std::to_string(i);
+            std::string fileName = "right_join_" + std::to_string(i) + ".idx";
             RecordBasedFileManager::instance().destroyFile(fileName);
         }
     }
 
     RC GHJoin::getNextTuple(void *data) {
-        void* leftBlock[PAGE_SIZE];
 
         AttrType leftType;
         AttrType rightType;
-
-        while(leftIterator->getNextTuple(leftBlock) != -1){
-
+        //printf("Checking start: {%d},{%d}, %zu, %zu\n",leftStart,rightStart,leftBlock.size(), rightBlock.size());
+        for(int i = leftStart;i<this->leftBlock.size();i++){
+            //printf("Checking left: {%d}---->",i);
             void* leftAttr[PAGE_SIZE];
-            Iterator::getAttribute(leftAttrs, condition.lhsAttr, leftBlock, leftAttr, leftType);
-            for(auto rightA : rightBlock){
+            Iterator::getAttribute(leftAttrs, condition.lhsAttr, leftBlock[i], leftAttr, leftType);
+            for(int j = rightStart;j<rightBlock.size();j++){
+               // printf("Checking left to right: {%d}---->{%d}",i,j);
+                rightStart ++;
+                auto rightA = rightBlock[j];
                 void* rightAttr[this->rightMaxSize];
-
+                index ++;
                 Iterator::getAttribute(rightAttrs, condition.rhsAttr, rightA, rightAttr, rightType);
                 if(compare(leftAttr, rightAttr, leftType, condition.op)){
 
                     //RelationManager::instance().printTuple(leftAttrs, leftBlock, std::cout);
                     //RelationManager::instance().printTuple(rightAttrs, rightA, std::cout);
-                    int length = RecordBasedFileManager::instance().getRecordSize(leftAttrs,leftBlock);
+                    int length = RecordBasedFileManager::instance().getRecordSize(leftAttrs,leftBlock[i]);
                     char* dataPointer = (char*)data;
-                    memmove(data, leftBlock, length);
+                    memmove(data, leftBlock[i], length);
                     char* rightPointer = (char*)rightA;
                     memmove(dataPointer + length, rightPointer+1, (int)(this->rightMaxSize));
 
                     return 0;
                 }
             }
-
+            rightStart = 0;
+            leftStart++;
         }
         return QE_EOF;
+
+
     }
 
     RC GHJoin::getAttributes(std::vector<Attribute> &attrs) const {
@@ -371,22 +382,43 @@ namespace PeterDB {
             this->rightMaxSize += s.length;
         }
         void* rightData[this->rightMaxSize];
+        int index = 0;
         while (rightIterator->getNextTuple(rightData) != -1) {
+            index ++;
             char* tupleData = new char[this->rightMaxSize];
             memcpy(tupleData, rightData, this->rightMaxSize);
             rightBlock.push_back(tupleData);
             //RelationManager::instance().printTuple(rightAttrs, rightData, std::cout);
         }
+        printf("Loaded {%d} from right block\n", index);
+    }
+
+    void GHJoin::loadLeftBlock() {
+        for(auto s : leftAttrs){
+            this->leftMaxSize += s.length;
+        }
+        void* leftData[this->leftMaxSize];
+        int index = 0;
+        while (leftIterator->getNextTuple(leftData) != -1) {
+            index ++;
+            char* tupleData = new char[this->leftMaxSize];
+            memcpy(tupleData, leftData, this->leftMaxSize);
+            leftBlock.push_back(tupleData);
+           // RelationManager::instance().printTuple(leftAttrs, leftData, std::cout);
+        }
+        printf("Loaded {%d} from leftblock\n", index);
     }
 
     void GHJoin::createRBFMFiles(int numFiles) {
+        printf("creating files\n");
         for(int i = 0;i < numFiles;i++){
-            std::string fileName = "left_par_" + std::to_string(i);
+            std::string fileName = "left_join_" + std::to_string(i) + ".idx";
+            printf("create: {%s}\n", fileName.c_str());
             RecordBasedFileManager::instance().createFile(fileName);
         }
 
         for(int i = 0;i < numFiles;i++){
-            std::string fileName = "right_par_" + std::to_string(i);
+            std::string fileName = "right_join_" + std::to_string(i) + ".idx";
             RecordBasedFileManager::instance().createFile(fileName);
         }
     }
