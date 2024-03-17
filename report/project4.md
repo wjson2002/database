@@ -33,6 +33,8 @@ I will iterate through the wanted attributes (ID and Grade) and retrieve/condens
 ### 5. Block Nested Loop Join
 - Describe how your block nested loop join works (especially, how you manage the given buffers.)
 
+For block nested loop join, I use a left block and right block. First I read all the data from right iterator into the right block. Then I iterate through the each tuple provided by the left iterator and read
+data into the left block. For each tuple in left iterator, I perform a join on matching tuples in right block. For each new tuple the left Block is refreshed. Right block is permanent.
 
 
 ### 6. Index Nested Loop Join
