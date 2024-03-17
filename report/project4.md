@@ -10,6 +10,7 @@
 
 ### 2. Catalog information about Index
 - Show your catalog information about an index (tables, columns).
+
 Did not implement this part.
 
 
