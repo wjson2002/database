@@ -78,6 +78,7 @@ Solo work.
 
 ### 11. Other (optional)
 - Freely use this section to tell us about things that are related to the project 4, but not related to the other sections (optional)
+
 Did not complete project 3, So did not do index related work or pass test cases that used INDEX.
 
 
