@@ -125,9 +125,7 @@ namespace PeterDB {
         this->attrNames = attrNames;
 
         this->input->getAttributes(attributes);
-//        for (const auto& attrName : attrNames) {
-//            printf("Attribute Names: %s\n", attrName.c_str());
-//        }
+
         for(auto a : attrNames){
             for(auto attr : attributes){
                 if(a == attr.name){
@@ -488,6 +486,16 @@ namespace PeterDB {
                     break;
                 case MAX:
                     memmove(pointer, &this->max, sizeof(int));
+                    break;
+                case COUNT:
+                    memmove(pointer, &this->count, sizeof(int));
+                    break;
+                case SUM:
+                    memmove(pointer, &this->sum, sizeof(int));
+                    break;
+                case AVG:
+                    avg = sum / count;
+                    memmove(pointer, &avg, sizeof(int));
                     break;
             }
             aggReturned = true;
