@@ -26,14 +26,14 @@ namespace PeterDB {
         RC destroyFile(const std::string &fileName);
 
         // Open an index and return an ixFileHandle.
-        RC openFile(const std::string &fileName, IXFileHandle &ixFileHandle);
+        static RC openFile(const std::string &fileName, IXFileHandle &ixFileHandle);
 
         // Close an ixFileHandle for an index.
         RC closeFile(IXFileHandle &ixFileHandle);
 
         // Insert an entry into the given index that is indicated by the given ixFileHandle.
         RC insertEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid);
-
+        RC insertFirstEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid);
         // Delete an entry from the given index that is indicated by the given ixFileHandle.
         RC deleteEntry(IXFileHandle &ixFileHandle, const Attribute &attribute, const void *key, const RID &rid);
 
@@ -48,15 +48,44 @@ namespace PeterDB {
 
         // Print the B+ tree in pre-order (in a JSON record format)
         RC printBTree(IXFileHandle &ixFileHandle, const Attribute &attribute, std::ostream &out) const;
+        RC createIndex(void *data, const PeterDB::Attribute &attribute, const void *key,
+                       const PeterDB::RID &rid,int &length, int page1, int slot1, int page2, int slot2);
+        RC readRoot(const void* data, int& key, PeterDB::RID& rid, int& page1, int& slot1, int& page2, int& slot2) const;
+        RC readIndex(const void* data, int& key, PeterDB::RID& rid, int& page1, int& slot1, int& page2, int& slot2) const;
+
 
     protected:
         IndexManager() = default;                                                   // Prevent construction
         ~IndexManager() = default;                                                  // Prevent unwanted destruction
         IndexManager(const IndexManager &) = default;                               // Prevent construction by copying
-        IndexManager &operator=(const IndexManager &) = default;                    // Prevent assignment
+        IndexManager &operator=(const IndexManager &) = default;
+        // Prevent assignment
+
+
 
     };
+    class IXFileHandle {
+    public:
 
+        // variables to keep counter for each operation
+        unsigned ixReadPageCounter;
+        unsigned ixWritePageCounter;
+        unsigned ixAppendPageCounter;
+        int slotCount = 0;
+        bool fileOpen;
+
+
+        FileHandle* fileHandle;
+        // Constructor
+        IXFileHandle();
+
+        // Destructor
+        ~IXFileHandle();
+
+        // Put the current counter values of associated PF FileHandles into variables
+        RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
+
+    };
     class IX_ScanIterator {
     public:
 
@@ -69,27 +98,19 @@ namespace PeterDB {
         // Get next matching entry
         RC getNextEntry(RID &rid, void *key);
 
+        int currentPage = 0;
+        int currentSlot = 0;
+        const void *lowKey;
+        const void *highKey;
+        bool lowKeyInclusive;
+        bool highKeyInclusive;
+        Attribute attribute;
+        IXFileHandle ixFileHandle;
+        FileHandle* fileHandle;
         // Terminate index scan
         RC close();
     };
 
-    class IXFileHandle {
-    public:
 
-        // variables to keep counter for each operation
-        unsigned ixReadPageCounter;
-        unsigned ixWritePageCounter;
-        unsigned ixAppendPageCounter;
-
-        // Constructor
-        IXFileHandle();
-
-        // Destructor
-        ~IXFileHandle();
-
-        // Put the current counter values of associated PF FileHandles into variables
-        RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
-
-    };
 }// namespace PeterDB
 #endif // _ix_h_

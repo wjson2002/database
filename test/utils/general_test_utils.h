@@ -149,7 +149,7 @@ namespace PeterDBTesting {
     void checkPrintRecord(const std::string &expected, const std::string &target, bool containsMode = false,
                           const std::vector<std::string> &ignoreValues = std::vector<std::string>(),
                           const bool caseInsensitive = false) {
-        GTEST_LOG_(INFO) << "Target string: " << target;
+       // GTEST_LOG_(INFO) << "Target string: " << target;
         if (std::strcmp(normalizeKVString(expected).c_str(), target.c_str()) == 0)
             return;
 

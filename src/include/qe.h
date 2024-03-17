@@ -4,14 +4,14 @@
 #include <vector>
 #include <string>
 #include <limits>
-
+#include <unordered_map>
 #include "rm.h"
 #include "ix.h"
 
 namespace PeterDB {
 
 #define QE_EOF (-1)  // end of the index scan
-    typedef enum AggregateOp {
+    typedef enum AggregateOrp {
         MIN = 0, MAX, COUNT, SUM, AVG
     } AggregateOp;
 
@@ -41,6 +41,9 @@ namespace PeterDB {
         virtual RC getAttributes(std::vector<Attribute> &attrs) const = 0;
 
         virtual ~Iterator() = default;
+
+        RC getAttribute(std::vector<Attribute> &attrs,const std::string& attr, void* data, void* attrData, AttrType& attrType);
+        bool compare(void* left, void* right, AttrType type, CompOp op);
     };
 
     class TableScan : public Iterator {
@@ -169,6 +172,11 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        RC getAttribute(std::vector<Attribute> &attrs, const std::string& attr, void* data, void* attrData);
+        Iterator* input;
+        Condition condition;
+        AttrType type;
     };
 
     class Project : public Iterator {
@@ -182,6 +190,10 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+        Iterator* input;
+        std::vector<std::string> attrNames;
+        std::vector<Attribute> attributes;
+        std::vector<Attribute> projectedAttrs;
     };
 
     class BNLJoin : public Iterator {
@@ -200,6 +212,19 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        void loadRightBlock();
+        Iterator* leftIterator;
+        Iterator* rightIterator;
+        std::vector<Attribute> leftAttrs = {};
+        std::vector<Attribute> rightAttrs = {};
+        std::vector<Attribute> combinedAttrs = {};
+        std::unordered_map<std::string, std::vector<Value>> dupMap;
+        int index = 0;
+        std::vector<void*> rightBlock;
+        Condition condition;
+        unsigned int numPages;
+        int rightMaxSize;
     };
 
     class INLJoin : public Iterator {
@@ -234,11 +259,42 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        void createRBFMFiles(int numFiles);
+        void loadRightBlock();
+        void loadLeftBlock();
+
+        Iterator* leftIterator;
+        Iterator* rightIterator;
+        std::vector<Attribute> leftAttrs = {};
+        std::vector<Attribute> rightAttrs = {};
+        std::vector<Attribute> combinedAttrs = {};
+        std::unordered_map<std::string, std::vector<Value>> dupMap;
+        int index = 0;
+        int leftStart = 0;
+        int rightStart = 0;
+        std::vector<void*> rightBlock;
+        std::vector<void*> leftBlock;
+        Condition condition;
+        unsigned int numPages;
+        int rightMaxSize;
+        int leftMaxSize;
+        void* leftBlockData;
+        int numPart;
     };
 
     class Aggregate : public Iterator {
         // Aggregation operator
     public:
+        Iterator* input;
+        Attribute aggAttr;
+        Attribute  groupAttr;
+        AggregateOp op;
+        int min,max,count,sum, avg;
+        bool first;
+        bool aggReturned = false;
+        bool isGroup = false;
+        std::vector<Attribute> attributeList;
         // Mandatory
         // Basic aggregation
         Aggregate(Iterator *input,          // Iterator of input R

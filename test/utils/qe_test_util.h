@@ -13,8 +13,8 @@
 #include "test/utils/rm_test_util.h"
 
 namespace PeterDBTesting {
-
-    class QE_Test : public ::testing::Test {
+    class QE_Test : public ::testing::Test
+{
     protected:
         std::unordered_map<std::string, std::vector<PeterDB::Attribute >> attrsMap{
                 {"left",         {

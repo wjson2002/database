@@ -1,8 +1,9 @@
-#include "src/include/rm.h"
 
+#include "src/include/rm.h"
+#include "src/include/ix.h"
 #include <cmath>
 #include <stdio.h>
-#include <stdlib.h>
+
 #include <string.h>
 #include <iostream>
 
@@ -13,10 +14,10 @@ namespace PeterDB {
                                                     {"file-name",TypeVarChar, 50}};
     std::string DEFAULT_ATTRIBUTE_NAME = "Columns";
     std::vector<Attribute> attributeRecordDescriptor = {{"table-id", TypeInt, sizeof(int)},
-                                                    {"column-name", TypeVarChar, 50},
-                                                    {"column-type",TypeInt, sizeof(int)},
-                                                    {"column-length",TypeInt, sizeof(int)},
-                                                    {"column-position",TypeInt, sizeof(int)}};
+                                                        {"column-name", TypeVarChar, 50},
+                                                        {"column-type",TypeInt, sizeof(int)},
+                                                        {"column-length",TypeInt, sizeof(int)},
+                                                        {"column-position",TypeInt, sizeof(int)}};
 
     RelationManager &RelationManager::instance() {
         static RelationManager _relation_manager = RelationManager();
@@ -48,21 +49,22 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
-
         printf("Deleting Catalog\n");
+        if(TableExists(DEFAULT_TABLES_NAME) && TableExists(DEFAULT_ATTRIBUTE_NAME)){
+            for(const auto& i : tableNameToIdMap){
+                FileHandle fh = tableIDmap[i.second];
 
-        if(CatalogActive == false){
-            //printf("Catalog not active\n");
+                RecordBasedFileManager::instance().destroyFile(i.first);
+                //RecordBasedFileManager::instance().closeFile(fh);
+            }
+            this->CatalogActive = false;
+            tableNameToIdMap.clear();
+            tableIDmap.clear();
+            return 0;
+        }
+        else{
             return -1;
         }
-        for(const auto& i : tableNameToIdMap){
-            RecordBasedFileManager::instance().destroyFile(i.first);
-        }
-        this->CatalogActive = false;
-        tableNameToIdMap.clear();
-        tableIDmap.clear();
-
-        return 0;
     }
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
@@ -126,6 +128,18 @@ namespace PeterDB {
             return -1;
         }
         if(TableExists(tableName)){
+
+            std::vector<Attribute> attrs;
+            getAttributes(tableName, attrs);
+
+
+
+            for(auto i : attrs){
+                printf("{%s}\n",i.name.c_str());
+                std::string file = tableName + i.name + ".idx";
+                IndexManager::instance().destroyFile(file);
+            }
+
             RecordBasedFileManager::instance().destroyFile(tableName);
             int tableInt = tableNameToIdMap[tableName];
             tableNameToIdMap.erase(tableName);
@@ -140,7 +154,9 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        printf("Getting table {%s}\n", tableName.c_str());
+        if(!CatalogActive){
+            createCatalog();
+        }
 
         if(tableName == DEFAULT_TABLES_NAME){
             attrs = tableRecordDescriptor;
@@ -154,6 +170,8 @@ namespace PeterDB {
 
 
         int tableID = tableNameToIdMap[tableName];
+        FileHandle fh = tableIDmap[tableID];
+
         //Need to get table ID
         std::vector<Attribute> recordDescriptor = getRecordDescriptor(tableID);
         attrs = recordDescriptor;
@@ -178,6 +196,7 @@ namespace PeterDB {
 
         rbfm.openFile(tableName, fh);
         rbfm.insertRecord(fh, recordD, data, rid);
+        //printf("Inserted to %d, %d", rid.pageNum, rid.slotNum);
         rbfm.closeFile(fh);
         return 0;
     }
@@ -205,7 +224,7 @@ namespace PeterDB {
 
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         int tableID = tableNameToIdMap[tableName];
-        FileHandle fh = tableIDmap[tableID];
+        FileHandle fh;
         std::vector<Attribute> recordD = getRecordDescriptor(tableID);
         rbfm.openFile(tableName, fh);
         rbfm.updateRecord(fh, recordD, data, rid);
@@ -220,11 +239,11 @@ namespace PeterDB {
             int tableID = tableNameToIdMap[tableName];
             FileHandle fh = tableIDmap[tableID];
             std::vector<Attribute> recordD = getRecordDescriptor(tableID);
+            //printf("readFile %s\n", tableName.c_str());
             rbfm.openFile(tableName, fh);
             int result = rbfm.readRecord(fh, recordD, rid, data);
             rbfm.closeFile(fh);
-            //printf("Read Tuple: ");
-            //rbfm.printRecord(recordD, data, std::cout);
+
             if(result == 0){
                 return 0;
             }
@@ -454,7 +473,6 @@ namespace PeterDB {
     bool RelationManager::TableExists(std::string tableName){
         auto it = tableNameToIdMap.find(tableName);
 
-
         if(it == tableNameToIdMap.end()){
             return false;
         }
@@ -490,10 +508,14 @@ namespace PeterDB {
                             AttrType type = a.type;
                             rm.readAttribute(rbfmIterator.fileName, rid, attr, readData);
                             char *tempPointer = (char *)readData;
-                            char *nullbit = (char*)&readData;
-                            int intValue = *(int*)(nullbit);
-                            if(intValue == 1){
+                            char nullbit = *((char*)readData);
+
+                            int intValue = (int)(nullbit);
+
+                            if(intValue != 0){
+
                                 memset(data, 1, 1);
+                                *(char*)data |= (1u << 7);
                             }
                             else{
                                 tempPointer += 1;
@@ -550,21 +572,27 @@ namespace PeterDB {
 
     // QE IX related
     RC RelationManager::createIndex(const std::string &tableName, const std::string &attributeName){
-        return -1;
+
+        std::string index = tableName + attributeName + ".idx";
+        IndexManager::instance().createFile(index);
+        printf("Create index: %s\n",index.c_str());
+        return 0;
     }
 
     RC RelationManager::destroyIndex(const std::string &tableName, const std::string &attributeName){
-        return -1;
+        std::string index = tableName + attributeName + ".idx";
+        IndexManager::instance().destroyFile(index);
+        return 0;
     }
 
     // indexScan returns an iterator to allow the caller to go through qualified entries in index
     RC RelationManager::indexScan(const std::string &tableName,
-                 const std::string &attributeName,
-                 const void *lowKey,
-                 const void *highKey,
-                 bool lowKeyInclusive,
-                 bool highKeyInclusive,
-                 RM_IndexScanIterator &rm_IndexScanIterator){
+                                  const std::string &attributeName,
+                                  const void *lowKey,
+                                  const void *highKey,
+                                  bool lowKeyInclusive,
+                                  bool highKeyInclusive,
+                                  RM_IndexScanIterator &rm_IndexScanIterator){
         return -1;
     }
 

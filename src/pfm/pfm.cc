@@ -23,9 +23,11 @@ namespace PeterDB {
         //MAKE SURE TO CLOSE FILE AFTER OPENING
 
         struct stat fileInfo{};
-
+        if(stat(fileName.c_str(), &fileInfo) == 0){
+            return -1;
+        }
         FILE* file;
-        file = fopen(fileName.c_str(), "wr+");
+        file = fopen(fileName.c_str(), "wrb+");
 
         pfmInitFile(file);
         if(file == nullptr)
@@ -42,6 +44,7 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::destroyFile(const std::string &fileName) {
+
         int result = remove(fileName.c_str());
         if (result != 0)
         {
@@ -52,7 +55,7 @@ namespace PeterDB {
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
 
-        FILE* file = fopen(fileName.c_str(), "r+");
+        FILE* file = fopen(fileName.c_str(), "rb+");
         if(file == nullptr)
         {
             perror("File failed to open");
@@ -65,7 +68,7 @@ namespace PeterDB {
             unsigned test = -1;
             fseek(file,0,SEEK_SET);
             fread(&test ,sizeof(unsigned), 1, file);
-            // printf("OPEN File with: pages: {%d}}\n", test);
+
             return 0;
         }
 
@@ -74,11 +77,14 @@ namespace PeterDB {
 
     RC PagedFileManager::closeFile(FileHandle &fileHandle) {
         FILE* file = fileHandle.myFile;
-        fileHandle.flushFile();
-
-        int result = fclose(file);
-        //printf("file closed\n");
-        return 0;
+        if(file != nullptr){
+            fileHandle.flushFile();
+            fclose(file);
+            return 0;
+        }
+        else{
+            return -1;
+        }
     }
 
     void PagedFileManager::pfmInitFile(FILE* file) {
