@@ -41,6 +41,7 @@ data into the left block. For each tuple in left iterator, I perform a join on m
 
 ### 6. Index Nested Loop Join
 - Describe how your index nested loop join works.
+  
 Not implemented.
 
 
