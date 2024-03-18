@@ -44,6 +44,7 @@ Not implemented.
 
 ### 7. Grace Hash Join (If you have implemented this feature)
 - Describe how your grace hash join works (especially, in-memory structure).
+  
 Grace hash join first creates N number of partitions each is identified by 1-N.
 Then I will partition each tuple, starting with the left iterator. The data is sorted into 
 the file based on a hash of data % N. Same is done with right iterator.
@@ -53,6 +54,7 @@ Then I for each tuple for each left partition I will match it to each tuple in a
 
 ### 8. Aggregation
 - Describe how your basic aggregation works.
+  
 Aggregation keeps track of each value (min, max, count, sum). If it is the first tuple, min and max will be set to this value
 and value is added to sum and count is incremented by 1. For every tuple after it is compared to the current min/max and is updated accordingly.
 Count and sum is also updated. Average is calcualted at the end by sum/count.
@@ -61,6 +63,7 @@ Once all the tuples are iterated, the data that is wanted (min, max, count, sum,
 Aggregation will only return once.
 
 - Describe how your group-based aggregation works. (If you have implemented this feature)
+  
 Not implemented.
 
 
