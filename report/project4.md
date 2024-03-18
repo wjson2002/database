@@ -16,6 +16,7 @@ Did not implement this part.
 
 ### 3. Filter
 - Describe how your filter works (especially, how you check the condition.)
+  
 Filter uses a single for loop to iterate through get tuple provided by the iterator. Filter
 will either return EQ_EOF or keep calling getNextTuple until a matching tuple is found.
 For my condition, it checks based on the datatype and compares the tuple to the provide
@@ -24,6 +25,7 @@ condition during the creation on Filter. Null terminators are ignored.
 
 ### 4. Project
 - Describe how your project works.
+  
 Project also uses a single for loop to iterate through each tuple provided by the iterator.
 Then for each tuple it will condense the tuple down to only the attribute that is wanted.
 For example if the original tuple contains: (Name, Id, Grade, Score), and project only wants ID and Grade
